@@ -9,25 +9,16 @@ def GetName(cls: t.Type[t.Any]) -> str:
 
 
 def Register[T: t.Type[t.Any]](cls: T, alias: t.Optional[str] = None) -> T:
-    name = GetName(cls) if alias is None else alias
-    
-    if name in _classses:
+    if (name := GetName(cls) if alias is None else alias) in _classses:
         raise RuntimeError()
-    
+
     _classses[name] = cls
-    
+
     return cls
 
 
-@t.overload
-def GetByName(name: str, /) -> t.Type[t.Any]: ...
-    
-@t.overload
-def GetByName[TDefault: t.Any](name: str, default: TDefault, /) -> t.Type[t.Any] | TDefault: ...
+def GetByName(name: str) -> t.Type[t.Any]:
+    return _classses[name]
 
-def GetByName(*args: t.Any):
-    key = t.cast(str, args[0])
-    if len(args) == 1:
-        return _classses[key]
-    return _classses.get(key, args[1])
-    
+def GetByNameOrDefault[TDefault: t.Optional[t.Any]](name: str, default: TDefault = None) -> t.Type[t.Any] | TDefault:
+    return _classses.get(name, default) # pyright: ignore[reportReturnType]

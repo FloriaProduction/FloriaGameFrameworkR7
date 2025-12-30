@@ -1,3 +1,6 @@
+import typing as t
+
+
 class FloriaGFError(Exception):
     pass
 

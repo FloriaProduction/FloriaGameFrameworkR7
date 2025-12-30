@@ -21,7 +21,7 @@ class Mesh(
         texcoord_size: int = 2,
         name: t.Optional[str] = None,
         *args: t.Any,
-        **kwargs: t.Any
+        **kwargs: t.Any,
     ):
         if texcoords is not None and len(vertices) / vertice_size != len(texcoords) / texcoord_size:
             raise ValueError()
