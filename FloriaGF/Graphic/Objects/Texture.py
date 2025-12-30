@@ -1,11 +1,9 @@
 import typing as t
 
-# from OpenGL import GL
 import numpy as np
-from contextlib import contextmanager, asynccontextmanager
-import functools
+from contextlib import contextmanager
 
-from ... import Utils, Types, Abc, Convert, GL
+from ... import Types, Abc, GL
 
 if t.TYPE_CHECKING:
     from PIL import Image

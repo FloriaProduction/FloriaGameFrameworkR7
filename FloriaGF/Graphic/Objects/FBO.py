@@ -2,7 +2,7 @@ import typing as t
 
 from contextlib import contextmanager, asynccontextmanager
 
-from ... import Utils, Abc, GL, Types
+from ... import Abc, GL, Types
 from .Texture import Texture
 
 

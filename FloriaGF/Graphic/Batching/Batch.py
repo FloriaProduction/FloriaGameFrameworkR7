@@ -1,9 +1,8 @@
 import typing as t
 from uuid import UUID, uuid4
 import numpy as np
-import itertools
 
-from ... import Abc, Validator, Utils, Convert, GL
+from ... import Abc, Validator, GL
 from ..Objects.FBO import FBO
 from ..Objects.BO import BO
 from ..Objects.VAO import VAO

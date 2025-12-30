@@ -15,7 +15,7 @@ class InstanceAttributeManager[
         '_update_instance_attribute_names',
         '__instance_data_cache',
         '_stopwatch_GetInstanceData',
-        '_stopwatch_UpdateInstanceField',
+        '_stopwatch__UpdateInstanceAttributes',
     )
 
     def __init__(self) -> None:
@@ -25,7 +25,7 @@ class InstanceAttributeManager[
         self.__instance_data_cache: t.Optional[dict[TAttribs, t.Any]] = None
 
         self._stopwatch_GetInstanceData = Stopwatch()
-        self._stopwatch_UpdateInstanceField = Stopwatch()
+        self._stopwatch__UpdateInstanceAttributes = Stopwatch()
 
     @abstractmethod
     def _GetIntanceAttributeItems(self) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem[TAttribs], ...]: ...
@@ -39,7 +39,7 @@ class InstanceAttributeManager[
         return data.get(attrib)
 
     def _UpdateInstanceAttributes(self, *fields: TAttribs, all: bool = False):
-        with self._stopwatch_UpdateInstanceField:
+        with self._stopwatch__UpdateInstanceAttributes:
             if all:
                 self.__instance_data_cache = None
             else:

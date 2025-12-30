@@ -1,5 +1,6 @@
 import typing as t
 
+
 JSON = t.Union[
     dict[str, "JSON"],
     list["JSON"],

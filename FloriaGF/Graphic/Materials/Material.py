@@ -1,5 +1,5 @@
 import typing as t
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import contextmanager
 from uuid import UUID, uuid4
 
 from ... import Abc, Validator

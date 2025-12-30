@@ -1,9 +1,8 @@
 import typing as t
 
-from contextlib import contextmanager, asynccontextmanager
-import functools
+from contextlib import contextmanager
 
-from ... import Utils, Abc, Convert, GL
+from ... import Abc, GL
 
 if t.TYPE_CHECKING:
     import numpy as np

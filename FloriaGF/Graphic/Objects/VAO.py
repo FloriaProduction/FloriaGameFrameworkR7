@@ -1,13 +1,10 @@
 import typing as t
 
 import numpy as np
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import contextmanager
 import ctypes
 
-from ... import Abc, Convert, GL
-
-if t.TYPE_CHECKING:
-    from ... import Types, GL
+from ... import Abc, GL
 
 
 class VAO(

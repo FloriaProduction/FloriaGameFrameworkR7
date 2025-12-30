@@ -1,6 +1,6 @@
 import typing as t
 
-from ... import Abc, Types, Validator, Utils, Convert, Protocols
+from ... import Abc, Types, Validator, Utils, Protocols
 from ...Core import Core
 from ...Timer import VariableTimer
 from ...Stopwatch import Stopwatch

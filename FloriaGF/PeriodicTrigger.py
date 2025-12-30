@@ -12,7 +12,7 @@ class PeriodicTrigger:
         Инициализирует триггер с заданным пороговым значением.
         """
         if threshold < 0:
-            raise ValueError("threshold must be non-negative")
+            raise ValueError("Threshold must be non-negative")
 
         self._counter: int = 0
         self._threshold = threshold

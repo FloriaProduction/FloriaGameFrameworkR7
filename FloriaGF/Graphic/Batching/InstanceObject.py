@@ -2,9 +2,8 @@ import typing as t
 from uuid import uuid4, UUID
 import pyrr
 import numpy as np
-import itertools
 
-from ... import Abc, Types, Utils, Validator
+from ... import Abc, Types, Validator
 
 
 class InstanceObject[
