@@ -5,12 +5,7 @@
 [![License](https://img.shields.io/pypi/l/FloriaGameFrameworkR7.svg)](https://github.com/FloriaProduction/FloriaGameFrameworkR7/blob/main/LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 
-Экспериментальный самописный игровой фреймворк нового поколения с асинхронным рендерингом и продвинутой системой управления ресурсами.
-
-## Ключевые особенности
-- Инстанстный рендеринг с использованием OpenGL
-- Гибкая ECS-архитектура
-- Поддержка 2D/3D графики
+Экспериментальный самописный игровой фреймворк.
 
 ## Требования
 - Windows 10/11
