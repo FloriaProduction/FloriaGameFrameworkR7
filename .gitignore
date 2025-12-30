@@ -4,5 +4,6 @@
 
 !FloriaGF/
 !.gitignore
+!README.md
 !pyproject.toml
 !LICENSE
