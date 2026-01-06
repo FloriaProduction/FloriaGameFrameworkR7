@@ -48,6 +48,7 @@ class Camera(
         resolution: t.Optional[tuple[int, int] | Types.Vec2[int]] = None,
         viewport_mode: t.Optional[Types.hints.viewport_mode] = None,
         projection: t.Optional[t.Union[ProjectionOrthographic, ProjectionPerspective]] = None,
+        scale: t.Optional[float] = None,
         program_compose: t.Optional[Abc.ComposeShaderProgram] = None,
         vao_quad: t.Optional[VAO] = None,
         **kwargs: t.Any,
@@ -70,7 +71,7 @@ class Camera(
         self._rotation: Types.Quaternion[float] = Types.Quaternion.New(rotation)
 
         self._resolution: Types.Vec2[int] = Types.Vec2(640, 360) if resolution is None else Types.Vec2[int].New(resolution)
-        self._scale: float = 1
+        self._scale: float = 1 if scale is None else scale
 
         self._projection_matrix_type: t.Optional[t.Literal['orthographic', 'perspective']] = None
         self._near: t.Optional[float] = 0.001
