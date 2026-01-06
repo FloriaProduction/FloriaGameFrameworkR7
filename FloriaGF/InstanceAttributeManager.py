@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from . import Abc, Convert, GL
-from .Stopwatch import Stopwatch
+from .Stopwatch import Stopwatch, stopwatch
 
 
 class InstanceAttributeManager[
@@ -14,7 +14,6 @@ class InstanceAttributeManager[
     __slots__ = (
         '_update_instance_attribute_names',
         '__instance_data_cache',
-        '_stopwatch_GetInstanceData',
         '_stopwatch__UpdateInstanceAttributes',
     )
 
@@ -23,9 +22,6 @@ class InstanceAttributeManager[
 
         self._update_instance_attribute_names: set[TAttribs] = set()
         self.__instance_data_cache: t.Optional[dict[TAttribs, t.Any]] = None
-
-        self._stopwatch_GetInstanceData = Stopwatch()
-        self._stopwatch__UpdateInstanceAttributes = Stopwatch()
 
     @abstractmethod
     def _GetIntanceAttributeItems(self) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem[TAttribs], ...]: ...
@@ -38,32 +34,32 @@ class InstanceAttributeManager[
             return None
         return data.get(attrib)
 
+    @stopwatch
     def _UpdateInstanceAttributes(self, *fields: TAttribs, all: bool = False):
-        with self._stopwatch__UpdateInstanceAttributes:
-            if all:
-                self.__instance_data_cache = None
-            else:
-                allow_fields = set(item['attrib'] for item in self._GetIntanceAttributeItems())
-                if any(field not in allow_fields for field in fields):
-                    raise
-                self._update_instance_attribute_names.update(fields)
+        if all:
+            self.__instance_data_cache = None
+        else:
+            allow_fields = set(item['attrib'] for item in self._GetIntanceAttributeItems())
+            if any(field not in allow_fields for field in fields):
+                raise
+            self._update_instance_attribute_names.update(fields)
 
     @t.final
+    @stopwatch
     def GetInstanceData(self) -> tuple[t.Any, ...]:
-        with self._stopwatch_GetInstanceData:
-            if self.__instance_data_cache is None:
-                self.__instance_data_cache = {
-                    item['attrib']: self._GetInstanceAttribute(item['attrib'])  # pyright: ignore[reportArgumentType]
-                    for item in self._GetIntanceAttributeItems()
-                }
+        if self.__instance_data_cache is None:
+            self.__instance_data_cache = {
+                item['attrib']: self._GetInstanceAttribute(item['attrib'])  # pyright: ignore[reportArgumentType]
+                for item in self._GetIntanceAttributeItems()
+            }
 
-            else:
-                for field in self._update_instance_attribute_names:
-                    self.__instance_data_cache[field] = self._GetInstanceAttribute(field)
+        else:
+            for field in self._update_instance_attribute_names:
+                self.__instance_data_cache[field] = self._GetInstanceAttribute(field)
 
-            self._update_instance_attribute_names.clear()
+        self._update_instance_attribute_names.clear()
 
-            return tuple(self.__instance_data_cache.values())
+        return tuple(self.__instance_data_cache.values())
 
     def GetInstanceDType(self) -> np.dtype:
         return np.dtype(

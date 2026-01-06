@@ -9,9 +9,7 @@ version = "0.0.2"
 description = "Экспериментальный самописный игровой фреймворк."
 readme = "README.md"
 license = { file = "LICENSE" }
-authors = [
-    {name = "FloriaProduction", email = "FloriaProduction@yandex.ru"}
-]
+authors = [{ name = "FloriaProduction", email = "FloriaProduction@yandex.ru" }]
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "PyOpenGL==3.1.10",
@@ -30,7 +28,7 @@ keywords = [
     "3d",
     "graphics",
     "ecs",
-    "entity-component-system"
+    "entity-component-system",
 ]
 classifiers = [
     "Intended Audience :: Developers",
@@ -39,7 +37,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Multimedia :: Graphics",
     "Topic :: Games/Entertainment",
-    
+
     "License :: OSI Approved :: Apache Software License",
 
     "Programming Language :: Python :: 3",
@@ -57,9 +55,7 @@ Repository = "https://github.com/FloriaProduction/FloriaGameFrameworkR7"
 
 
 [project.optional-dependencies]
-dev = [
-    "black>=25.12.0",
-]
+dev = ["black>=25.12.0"]
 
 
 [tool.black]
@@ -81,12 +77,12 @@ namespaces = false
 [tool.setuptools.package-data]
 "*" = [
     "*.vsh",
-    "*.fsh", 
-    "*.txt", 
-    "*.json", 
-    "*.md", 
-    "*.png", 
-    "*.jpg", 
+    "*.fsh",
+    "*.txt",
+    "*.json",
+    "*.md",
+    "*.png",
+    "*.jpg",
     "*.jpeg",
     "*.gif",
 ]

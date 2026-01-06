@@ -18,6 +18,7 @@ class Flag:
         with flag.Bind():
             # Флаг установлен в True
             ...
+
         # Флаг автоматически сброшен в False
 
         ...

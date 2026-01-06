@@ -1,7 +1,5 @@
 import typing as t
-from abc import ABC, abstractmethod
 from time import perf_counter
-import asyncio
 
 
 class VariableTimer:
@@ -135,7 +133,6 @@ class FixedTimer:
 
     @property
     def progress(self) -> float:
-        # return 1 - max(0, min(1, self.tick - self.ideal_ticks))
         return self.GetProgressByTick(self.tick)
 
     def GetProgressByTick(self, tick: t.Optional[int]) -> float:

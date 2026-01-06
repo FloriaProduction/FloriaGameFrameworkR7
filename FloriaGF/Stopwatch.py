@@ -1,7 +1,12 @@
 import typing as t
+import types as ts
 from contextlib import contextmanager
 from time import perf_counter
 from collections import deque
+import functools
+
+if t.TYPE_CHECKING:
+    from . import Protocols
 
 
 class Stopwatch:
@@ -147,3 +152,24 @@ class Stopwatch:
 
     def __str__(self) -> str:
         return self.__repr__()
+
+    
+    
+def stopwatch[
+    TFunc: Protocols.Functions.SyncCallable[...],
+](
+    func: TFunc,
+    stopwatch: t.Optional[Stopwatch] = None,
+) -> TFunc:
+    """Декоратор для измерения времени выполнения функций и методов."""
+    
+    stopwatch = Stopwatch() if stopwatch is None else stopwatch
+    
+    @functools.wraps(func)
+    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
+        with stopwatch:
+            return func(*args, **kwargs)
+    
+    wrapper.__stopwatch__ = stopwatch # pyright: ignore[reportAttributeAccessIssue]
+    
+    return t.cast(TFunc, wrapper)

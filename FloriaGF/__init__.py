@@ -17,7 +17,7 @@ from .Avg import Avg
 from .PerSecond import PerSecond
 from .PeriodicTrigger import PeriodicTrigger
 from .Flag import Flag
-from .Stopwatch import Stopwatch
+from .Stopwatch import Stopwatch, stopwatch
 from .AsyncEvent import AsyncEvent
 
 from .Config import ConfigCls, Config  # pyright: ignore[reportGeneralTypeIssues]
