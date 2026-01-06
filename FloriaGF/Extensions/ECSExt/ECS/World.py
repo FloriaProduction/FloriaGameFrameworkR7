@@ -161,13 +161,34 @@ class World:
 
         return id
 
+    @t.overload
     def GetEntity(
         self,
         entity_id: UUID,
-    ) -> EntityInfo:
+        /,
+    ) -> EntityInfo: ...
+
+    @t.overload
+    def GetEntity(
+        self,
+        entity_id: t.Optional[UUID],
+        /,
+    ) -> t.Optional[EntityInfo]: ...
+
+    def GetEntity(
+        self,
+        entity_id: t.Optional[UUID],
+    ):
+        if entity_id is None:
+            return None
         if not self.HasEntity(entity_id):
             raise
         return EntityInfo(self, entity_id)
+
+    def GetEntities(
+        self,
+    ) -> set[UUID]:
+        return set(self._entities)
 
     def GetEntitiesByComponents[
         TCom: Component = Component,
