@@ -26,9 +26,6 @@ class Window(Abc.Graphic.Windows.Window):
         vsync: t.Optional[GL.hints.vsync] = None,
         background_color: Types.hints.rgb = (255, 255, 255),
         double_buffer: bool = True,
-        camera: t.Optional[Abc.Camera] = None,
-        camera_resolution: t.Optional[Types.hints.size_2d] = None,
-        camera_resolution_scale: float = 1,
         **kwargs: t.Any,
     ):
         super().__init__()
@@ -58,16 +55,12 @@ class Window(Abc.Graphic.Windows.Window):
         self._material_manager: Managers.MaterialManager = Managers.MaterialManager(self)
 
         with self.Bind():
-            self._camera: Abc.Camera = (
-                camera
-                if camera is not None
-                else Camera(
-                    self,
-                    resolution=self.size if camera_resolution is None else camera_resolution,
-                    projection={
-                        'type': 'orthographic',
-                    },
-                )
+            self._camera: Abc.Camera = Camera(
+                self,
+                resolution=self.size,
+                projection={
+                    'type': 'orthographic',
+                },
             )
 
             self.SetVSync(self.vsync)
@@ -130,11 +123,6 @@ class Window(Abc.Graphic.Windows.Window):
             self.input_manager.Simulate()
 
             self.camera.Render()
-
-            GL.ClearColor(self.background_color)
-            GL.Clear('color', 'depth')
-            GL.Viewport((0, 0), self.size)
-
             self.camera.Draw()
 
     def _PerformClose(self):
@@ -189,6 +177,10 @@ class Window(Abc.Graphic.Windows.Window):
         return GL.Window.ShouldClose(self._window)
 
     @property
+    def closed(self) -> bool:
+        return self._closed
+
+    @property
     def context_version(self) -> Types.hints.context_version:
         return self._context_version
 
@@ -206,20 +198,20 @@ class Window(Abc.Graphic.Windows.Window):
     def GetSize(self) -> Types.Vec2[int]:
         return Types.Vec2[int].New(glfw.get_window_size(self.glfw_window))
 
-    def SetSize(self, x: int, y: int):
-        glfw.set_window_size(self.glfw_window, x, y)
+    def SetSize(self, value: Types.hints.size_2d):
+        glfw.set_window_size(self.glfw_window, *value)
 
     def GetWidth(self) -> int:
         return self.GetSize()[0]
 
     def SetWidth(self, value: int):
-        self.SetSize(value, self.GetHeight())
+        self.SetSize((value, self.GetHeight()))
 
     def GetHeight(self) -> int:
         return self.GetSize()[1]
 
     def SetHeight(self, value: int):
-        self.SetSize(self.GetWidth(), value)
+        self.SetSize((self.GetWidth(), value))
 
     def GetTitle(self) -> str:
         return glfw.get_window_title(self.glfw_window) or '?'

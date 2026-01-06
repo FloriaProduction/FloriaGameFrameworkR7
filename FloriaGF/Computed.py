@@ -3,8 +3,9 @@ import typing as t
 
 class _BaseComputed[
     T: t.Any,
-    TFunGet: t.Callable[[], t.Any],
-    TFunSet: t.Callable[[t.Any], t.Any],
+    TFunGet: t.Callable[..., t.Any],
+    TFunSet: t.Callable[..., t.Any],
+    TFunClear: t.Callable[..., t.Any],
 ]:
     def __init__(
         self,
@@ -12,6 +13,7 @@ class _BaseComputed[
         cached: bool = True,
         get_func: t.Optional[TFunGet] = None,
         set_func: t.Optional[TFunSet] = None,
+        clear_func: t.Optional[TFunClear] = None,
     ):
         """
         Инициализирует вычисляемое свойство.
@@ -23,6 +25,8 @@ class _BaseComputed[
                       через метод GetFunc().
             set_func: Функция для установки значения. Может быть установлена позже
                       через метод SetFunc().
+            set_func: Функция для очистки значения. Может быть установлена позже
+                      через метод ClearFunc().
         """
 
         super().__init__()
@@ -31,6 +35,7 @@ class _BaseComputed[
 
         self._get_func: t.Optional[TFunGet] = get_func
         self._set_func: t.Optional[TFunSet] = set_func
+        self._clear_func: t.Optional[TFunClear] = clear_func
 
         self._cached: bool = cached
 
@@ -64,6 +69,16 @@ class _BaseComputed[
             raise RuntimeError('Setter function is not set')
         return self._set_func
 
+    @property
+    def clear_func(self) -> t.Optional[TFunClear]:
+        """
+        Получает текущую функцию-очистки.
+
+        Returns:
+            Текущую функцию-очистки
+        """
+        return self._clear_func
+
     def GetFunc(self, get_func: TFunGet):
         """
         Устанавливает функцию-геттер.
@@ -82,12 +97,23 @@ class _BaseComputed[
         """
         self._set_func = set_func
 
+    def ClearFunc(self, clear_func: TFunClear):
+        """
+        Устанавливает функцию-сеттер.
+
+        Args:
+            set_func: Новая функция для установки значения
+        """
+        self._clear_func = clear_func
+
     def Clear(self):
         """
         Очищает кэшированное значение.
 
         При следующем обращении к значению функция-геттер будет вызвана снова, даже если кэширование включено.
         """
+        if (clear_func := self._clear_func) is not None:
+            clear_func(self._value)
         self._value = None
 
 
@@ -96,6 +122,7 @@ class Computed[T: t.Any](
         T,
         t.Callable[[], T],
         t.Callable[[T], t.Any],
+        t.Callable[[t.Optional[T]], t.Any],
     ]
 ):
     """
@@ -157,6 +184,7 @@ class ComputedAsync[T: t.Any](
     _BaseComputed[
         T,
         t.Callable[[], t.Coroutine[t.Any, t.Any, T]],
+        t.Callable[[T], t.Coroutine[t.Any, t.Any, t.Any]],
         t.Callable[[T], t.Coroutine[t.Any, t.Any, t.Any]],
     ]
 ):

@@ -61,9 +61,10 @@ rgba = t.Union[
 ]
 
 
-display_mode = t.Literal[
+viewport_mode = t.Literal[
     'stretch',
     'letterbox',
+    'pixel_perfect',
 ]
 
 context_version = tuple[int, int]

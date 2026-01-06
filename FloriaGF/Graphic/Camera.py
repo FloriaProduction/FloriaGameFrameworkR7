@@ -10,7 +10,7 @@ from .Objects.FBO import FBO
 from .Objects.VAO import VAO
 from ..Managers.BatchObjectManager import BatchObjectManager
 from .ShaderPrograms.ComposeShaderProgram import ComposeShaderProgram
-from ..Stopwatch import Stopwatch
+from ..Stopwatch import stopwatch
 
 
 class Projection(t.TypedDict):
@@ -46,9 +46,10 @@ class Camera(
         rotation: Types.hints.rotation = (0, 0, 0),
         *,
         resolution: t.Optional[tuple[int, int] | Types.Vec2[int]] = None,
-        vao_quad: t.Optional[VAO] = None,
-        program_compose: t.Optional[Abc.ComposeShaderProgram] = None,
+        viewport_mode: t.Optional[Types.hints.viewport_mode] = None,
         projection: t.Optional[t.Union[ProjectionOrthographic, ProjectionPerspective]] = None,
+        program_compose: t.Optional[Abc.ComposeShaderProgram] = None,
+        vao_quad: t.Optional[VAO] = None,
         **kwargs: t.Any,
     ):
         super().__init__()
@@ -59,9 +60,8 @@ class Camera(
             self._vao: VAO = VAO.NewQuad(window) if vao_quad is None else vao_quad
             self._ubo = BO(window, 'uniform_buffer')
 
-        self._compose_program: Abc.ComposeShaderProgram = Utils.CoalesceLazy(
-            program_compose,
-            lambda: ComposeShaderProgram(window),
+        self._compose_program: Abc.ComposeShaderProgram = (
+            ComposeShaderProgram(window) if program_compose is None else program_compose
         )
         self._fbo: t.Optional[FBO] = None
         self._batch_manager: BatchObjectManager = BatchObjectManager(self.window)
@@ -71,8 +71,6 @@ class Camera(
 
         self._resolution: Types.Vec2[int] = Types.Vec2(640, 360) if resolution is None else Types.Vec2[int].New(resolution)
         self._scale: float = 1
-
-        self._display_mode: t.Optional[Types.hints.display_mode] = 'letterbox'
 
         self._projection_matrix_type: t.Optional[t.Literal['orthographic', 'perspective']] = None
         self._near: t.Optional[float] = 0.001
@@ -84,9 +82,7 @@ class Camera(
 
         self._instance_dtype: t.Optional[np.dtype] = None
 
-        self._stopwatch_Render = Stopwatch()
-        self._stopwatch_Draw = Stopwatch()
-        self._stopwatch_Update = Stopwatch()
+        self._viewport_mode: Types.hints.viewport_mode = 'stretch' if viewport_mode is None else viewport_mode
 
         if projection is not None:
             if projection['type'] == 'orthographic':
@@ -98,12 +94,15 @@ class Camera(
                 )
             elif projection['type'] == 'perspective':
                 self.SetProjectionPerspective(
-                    projection['fov'],
+                    projection.get('fov', 60),
                     projection.get('near', 0.001),
                     projection.get('far', 1000),
                 )
             else:
                 raise ValueError()
+
+        else:
+            self.SetProjectionOrthographic()
 
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         self._batch_manager.Dispose()
@@ -111,40 +110,91 @@ class Camera(
         if self._fbo is not None:
             self._fbo.Dispose()
 
-    def Render(self, *args: t.Any, **kwargs: t.Any):
-        '''
-        Требует контекста OpenGL
-        '''
-        with self._stopwatch_Render:
-            if self.request_intance_update:
-                self.Update()
-
-            if self._fbo is None or self._fbo.size != self.resolution:
-                self._fbo = FBO(self.window, self.resolution)
-
-            with self.fbo.Bind():
-                GL.ClearColor((0, 0, 0, 0))
-                GL.Clear('color', 'depth')
-
-                with self._vao.Bind():
-                    self.batch_manager.Draw(self)
-
-    def Draw(self):
-        with self._stopwatch_Draw:
-            with self._vao.Bind():
-                with self.compose_program.Bind(self.fbo):
-                    GL.Draw.Arrays('triangle_fan', 4)
-
+    @stopwatch
     def Update(self, *args: t.Any, **kwargs: t.Any):
-        with self._stopwatch_Update:
-            with self.ubo.Bind() as ubo:
-                ubo.SetData(
-                    np.array(
-                        self.GetInstanceData(),
-                        dtype=self.instance_dtype,
-                    ),
-                    'dynamic_draw',
-                )
+        with self.ubo.Bind() as ubo:
+            ubo.SetData(
+                np.array(
+                    self.GetInstanceData(),
+                    dtype=self.instance_dtype,
+                ),
+                'dynamic_draw',
+            )
+
+    def UpdateViewport(self, *args: t.Any, **kwargs: t.Any):
+        window_size = self.window.size
+        resolution = self.resolution
+
+        if self.viewport_mode == 'stretch':
+            GL.Viewport((0, 0), window_size)
+
+        elif self.viewport_mode == 'letterbox':
+            base_aspect = resolution.width / resolution.height
+            window_aspect = window_size.width / window_size.height
+
+            if window_aspect > base_aspect:
+                viewport_height = window_size.height
+                viewport_width = int(viewport_height * base_aspect)
+                offset_x = (window_size.width - viewport_width) // 2
+                offset_y = 0
+            else:
+                viewport_width = window_size.width
+                viewport_height = int(viewport_width / base_aspect)
+                offset_x = 0
+                offset_y = (window_size.height - viewport_height) // 2
+
+            GL.Viewport((offset_x, offset_y), (viewport_width, viewport_height))
+
+        elif self.viewport_mode == 'pixel_perfect':
+            max_scale_x = window_size.width // resolution.width
+            max_scale_y = window_size.height // resolution.height
+
+            scale = min(max_scale_x, max_scale_y)
+
+            if scale < 1:
+                scale = 1
+
+            viewport_width = resolution.width * scale
+            viewport_height = resolution.height * scale
+
+            if viewport_width > window_size.width:
+                viewport_width = window_size.width
+            if viewport_height > window_size.height:
+                viewport_height = window_size.height
+
+            offset_x = max(0, (window_size.width - viewport_width) // 2)
+            offset_y = max(0, (window_size.height - viewport_height) // 2)
+
+            GL.Viewport((offset_x, offset_y), (viewport_width, viewport_height))
+
+        else:
+            raise
+
+    @stopwatch
+    def Render(self, *args: t.Any, **kwargs: t.Any):
+        if self.request_intance_update:
+            self.Update()
+
+        if self._fbo is None or self._fbo.size != self.resolution:
+            self._fbo = FBO(self.window, self.resolution)
+
+        with self.fbo.Bind():
+            GL.ClearColor(self.window.background_color)
+            GL.Clear('color', 'depth')
+
+            with self._vao.Bind():
+                self.batch_manager.Draw(self)
+
+    @stopwatch
+    def Draw(self):
+        GL.ClearColor((0, 0, 0, 0))
+        GL.Clear('color', 'depth')
+
+        self.UpdateViewport()
+
+        with self._vao.Bind():
+            with self.compose_program.Bind(self.fbo):
+                GL.Draw.Arrays('triangle_fan', 4)
 
     def SetProjectionOrthographic(
         self,
@@ -177,6 +227,8 @@ class Camera(
         self._UpdateInstanceAttributes('projection')
 
     def GetProjectionMatrix(self) -> pyrr.Matrix44:
+        scale = max(0.000001, self.scale)  # max 1 000 000 scale
+
         if self._projection_matrix_type == 'orthographic':
             if self._orthographic_size is None:
                 raise
@@ -184,10 +236,10 @@ class Camera(
 
             return pyrr.Matrix44(
                 pyrr.matrix44.create_orthogonal_projection_matrix(
-                    -width / 2,
-                    width / 2,
-                    -height / 2,
-                    height / 2,
+                    -width / 2 / scale,
+                    width / 2 / scale,
+                    -height / 2 / scale,
+                    height / 2 / scale,
                     self.near,
                     self.far,
                     dtype=np.float32,
@@ -197,7 +249,7 @@ class Camera(
         else:
             return pyrr.Matrix44(
                 pyrr.matrix44.create_perspective_projection(
-                    self.fov,
+                    self.fov / scale,
                     self.aspect,
                     self.near,
                     self.far,
@@ -328,8 +380,6 @@ class Camera(
         return self._near
 
     def SetNear(self, value: float):
-        if value <= 0:
-            raise
         self._near = value
 
     @property
@@ -376,6 +426,18 @@ class Camera(
     def fov(self, value: float):
         self.SetFov(value)
 
+    @property
+    def instance_dtype(self):
+        if self._instance_dtype is None:
+            self._instance_dtype = self.GetInstanceDType()
+        return self._instance_dtype
+
+    def GetViewportMode(self) -> Types.hints.viewport_mode:
+        return self._viewport_mode
+
+    def SetViewportMode(self, value: Types.hints.viewport_mode):
+        self._viewport_mode = value
+
     def GetScale(self) -> float:
         return self._scale
 
@@ -383,17 +445,4 @@ class Camera(
         if value <= 0:
             raise
         self._scale = value
-
-    @property
-    def scale(self):
-        return self.GetScale()
-
-    @scale.setter
-    def scale(self, value: float):
-        self.SetScale(value)
-
-    @property
-    def instance_dtype(self):
-        if self._instance_dtype is None:
-            self._instance_dtype = self.GetInstanceDType()
-        return self._instance_dtype
+        self._UpdateInstanceAttributes('projection')

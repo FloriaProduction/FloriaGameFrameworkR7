@@ -114,7 +114,35 @@ class Camera(
     @abstractmethod
     def compose_program(self) -> 'ComposeShaderProgram': ...
 
+    @abstractmethod
+    def GetViewportMode(self) -> Types.hints.viewport_mode: ...
+
+    @abstractmethod
+    def SetViewportMode(self, value: Types.hints.viewport_mode): ...
+
     @property
     def aspect(self) -> float:
         """Соотношение сторон разрешения."""
-        return self.resolution[0] / self.resolution[1]
+        return self.resolution.width / self.resolution.height
+
+    @property
+    def viewport_mode(self):
+        return self.GetViewportMode()
+
+    @viewport_mode.setter
+    def viewport_mode(self, value: Types.hints.viewport_mode):
+        self.SetViewportMode(value)
+
+    @abstractmethod
+    def GetScale(self) -> float: ...
+
+    @abstractmethod
+    def SetScale(self, value: float): ...
+
+    @property
+    def scale(self):
+        return self.GetScale()
+
+    @scale.setter
+    def scale(self, value: float):
+        self.SetScale(value)

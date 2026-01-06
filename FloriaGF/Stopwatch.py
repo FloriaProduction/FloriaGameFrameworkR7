@@ -153,8 +153,7 @@ class Stopwatch:
     def __str__(self) -> str:
         return self.__repr__()
 
-    
-    
+
 def stopwatch[
     TFunc: Protocols.Functions.SyncCallable[...],
 ](
@@ -162,14 +161,14 @@ def stopwatch[
     stopwatch: t.Optional[Stopwatch] = None,
 ) -> TFunc:
     """Декоратор для измерения времени выполнения функций и методов."""
-    
+
     stopwatch = Stopwatch() if stopwatch is None else stopwatch
-    
+
     @functools.wraps(func)
     def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
         with stopwatch:
             return func(*args, **kwargs)
-    
-    wrapper.__stopwatch__ = stopwatch # pyright: ignore[reportAttributeAccessIssue]
-    
+
+    wrapper.__stopwatch__ = stopwatch  # pyright: ignore[reportAttributeAccessIssue]
+
     return t.cast(TFunc, wrapper)

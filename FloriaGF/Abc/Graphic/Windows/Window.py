@@ -45,6 +45,10 @@ class Window(
 
     @property
     @abstractmethod
+    def closed(self) -> bool: ...
+
+    @property
+    @abstractmethod
     def shader_manager(self) -> 'ShaderManager': ...
 
     @property
@@ -92,7 +96,7 @@ class Window(
     @abstractmethod
     def GetSize(self) -> 'Types.Vec2[int]': ...
     @abstractmethod
-    def SetSize(self, x: int, y: int): ...
+    def SetSize(self, value: Types.hints.size_2d): ...
 
     @abstractmethod
     def GetWidth(self) -> int: ...
@@ -165,12 +169,12 @@ class Window(
         self.SetDecorated(value)
 
     @property
-    def size(self) -> tuple[int, int]:
+    def size(self) -> Types.Vec2[int]:
         return self.GetSize()
 
     @size.setter
-    def size(self, value: tuple[int, int]):
-        self.SetSize(*value)
+    def size(self, value: Types.hints.size_2d):
+        self.SetSize(value)
 
     @property
     def width(self) -> int:
