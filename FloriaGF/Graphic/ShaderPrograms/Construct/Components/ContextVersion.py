@@ -14,6 +14,5 @@ class ContexVersion(Component):
         self.version = version
         self.type = type
 
-    @property
-    def source(self):
+    def GetSource(self) -> str:
         return f'#version {self.version} {self.type}'

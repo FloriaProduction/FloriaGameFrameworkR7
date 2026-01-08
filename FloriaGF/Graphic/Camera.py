@@ -14,18 +14,22 @@ from ..Stopwatch import stopwatch
 
 
 class Projection(t.TypedDict):
-    type: t.Literal['orthographic', 'perspective']
     near: t.NotRequired[float]
+    '''Ближняя граница в единицах измерения.'''
     far: t.NotRequired[float]
+    '''Дальная граница в единицах измерения.'''
 
 
 class ProjectionOrthographic(Projection):
-    width: t.NotRequired[int]
-    height: t.NotRequired[int]
+    width: t.NotRequired[float]
+    '''Ширина в единицах измерения.'''
+    height: t.NotRequired[float]
+    '''Высота в единицах измерения.'''
 
 
 class ProjectionPerspective(Projection):
     fov: float
+    '''Поле зрения в градусах, должно быть между `0 и 180 не включительно`'''
 
 
 class Camera(
@@ -47,7 +51,10 @@ class Camera(
         *,
         resolution: t.Optional[tuple[int, int] | Types.Vec2[int]] = None,
         viewport_mode: t.Optional[Types.hints.viewport_mode] = None,
-        projection: t.Optional[t.Union[ProjectionOrthographic, ProjectionPerspective]] = None,
+        projection_orthographic: t.Optional[ProjectionOrthographic] = None,
+        projection_perspective: t.Optional[ProjectionPerspective] = None,
+        near: float = 0.0001,
+        far: float = 10000,
         scale: t.Optional[float] = None,
         program_compose: t.Optional[Abc.ComposeShaderProgram] = None,
         vao_quad: t.Optional[VAO] = None,
@@ -70,12 +77,14 @@ class Camera(
         self._position: Types.Vec3[float] = Types.Vec3[float].New(position)
         self._rotation: Types.Quaternion[float] = Types.Quaternion.New(rotation)
 
+        self._viewport_mode: Types.hints.viewport_mode = 'letterbox' if viewport_mode is None else viewport_mode
         self._resolution: Types.Vec2[int] = Types.Vec2(640, 360) if resolution is None else Types.Vec2[int].New(resolution)
         self._scale: float = 1 if scale is None else scale
 
+        # projections
         self._projection_matrix_type: t.Optional[t.Literal['orthographic', 'perspective']] = None
-        self._near: t.Optional[float] = 0.001
-        self._far: t.Optional[float] = 1000
+        self._near: t.Optional[float] = near
+        self._far: t.Optional[float] = far
         # orthographic
         self._orthographic_size: t.Optional[Types.Vec2[float]] = None
         # perspective
@@ -83,27 +92,29 @@ class Camera(
 
         self._instance_dtype: t.Optional[np.dtype] = None
 
-        self._viewport_mode: Types.hints.viewport_mode = 'stretch' if viewport_mode is None else viewport_mode
+        if projection_orthographic is None and projection_perspective is None:
+            self.SetProjectionOrthographic()
 
-        if projection is not None:
-            if projection['type'] == 'orthographic':
-                self.SetProjectionOrthographic(
-                    projection.get('width'),
-                    projection.get('height'),
-                    projection.get('near', 0.001),
-                    projection.get('far', 1000),
-                )
-            elif projection['type'] == 'perspective':
-                self.SetProjectionPerspective(
-                    projection.get('fov', 60),
-                    projection.get('near', 0.001),
-                    projection.get('far', 1000),
-                )
-            else:
-                raise ValueError()
+        elif projection_orthographic is not None and projection_perspective is not None:
+            raise ValueError()
+
+        elif projection_orthographic is not None:
+            self.SetProjectionOrthographic(
+                projection_orthographic.get('width'),
+                projection_orthographic.get('height'),
+                projection_orthographic.get('near', 0.001),
+                projection_orthographic.get('far', 1000),
+            )
+
+        elif projection_perspective is not None:
+            self.SetProjectionPerspective(
+                projection_perspective['fov'],
+                projection_perspective.get('near', 0.001),
+                projection_perspective.get('far', 1000),
+            )
 
         else:
-            self.SetProjectionOrthographic()
+            raise RuntimeError('Как?')
 
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         self._batch_manager.Dispose()
@@ -116,7 +127,7 @@ class Camera(
         with self.ubo.Bind() as ubo:
             ubo.SetData(
                 np.array(
-                    self.GetInstanceData(),
+                    tuple(self.GetInstanceData().values()),
                     dtype=self.instance_dtype,
                 ),
                 'dynamic_draw',
@@ -201,29 +212,33 @@ class Camera(
         self,
         width: t.Optional[float] = None,
         height: t.Optional[float] = None,
-        near: float = 0.001,
-        far: float = 1000,
+        near: t.Optional[float] = None,
+        far: t.Optional[float] = None,
     ):
         self._projection_matrix_type = 'orthographic'
         self._orthographic_size = Types.Vec2[float](
-            Config.PIX_scale * self.resolution.width if width is None else width,
-            Config.PIX_scale * self.resolution.height if height is None else height,
+            self.resolution.width * Config.PIX_scale if width is None else width,
+            self.resolution.height * Config.PIX_scale if height is None else height,
         )
-        self.near = near
-        self.far = far
+        if near is not None:
+            self.near = near
+        if far is not None:
+            self.far = far
 
         self._UpdateInstanceAttributes('projection')
 
     def SetProjectionPerspective(
         self,
         fov: float,
-        near: float = 0.001,
-        far: float = 1000,
+        near: t.Optional[float] = None,
+        far: t.Optional[float] = None,
     ):
         self._projection_matrix_type = 'perspective'
-        self.fov = fov
-        self.near = near
-        self.far = far
+        self._fov = fov
+        if near is not None:
+            self.near = near
+        if far is not None:
+            self.far = far
 
         self._UpdateInstanceAttributes('projection')
 
@@ -268,55 +283,51 @@ class Camera(
             )
         )
 
-    def _GetIntanceAttributeItems(self) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem[Camera.ATTRIBS], ...]:
+    def GetIntanceAttributeItems(self) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem[Camera.ATTRIBS], ...]:
         return (
             {
-                'attrib': 'projection',
+                'name': 'projection',
                 'type': 'mat4',
             },
             {
-                'attrib': 'view',
+                'name': 'view',
                 'type': 'mat4',
             },
             {
-                'attrib': 'resolution',
+                'name': 'resolution',
                 'type': 'vec2',
             },
         )
 
-    def _GetInstanceAttribute(self, attrib: Camera.ATTRIBS | str) -> t.Any:
-        if attrib == 'projection':
+    def _GetInstanceAttribute(self, name: Camera.ATTRIBS | str) -> t.Any:
+        if name == 'projection':
             return self.GetProjectionMatrix()
 
-        elif attrib == 'view':
+        elif name == 'view':
             return self.GetViewMatrix()
 
-        elif attrib == 'resolution':
+        elif name == 'resolution':
             return self.resolution
 
         raise
 
-    def _GetInstanceAttributeCache(self, attrib: Camera.ATTRIBS | str) -> t.Optional[t.Any]:
-        return super()._GetInstanceAttributeCache(attrib)
+    def _GetInstanceAttributeCache(self, name: Camera.ATTRIBS | str) -> t.Optional[t.Any]:
+        return super()._GetInstanceAttributeCache(name)
 
-    def _UpdateInstanceAttributes(self, *fields: Camera.ATTRIBS | str, all: bool = False):
-        return super()._UpdateInstanceAttributes(*fields, all=all)
+    def _UpdateInstanceAttributes(self, *names: Camera.ATTRIBS | str, all: bool = False):
+        return super()._UpdateInstanceAttributes(*names, all=all)
 
-    @property
-    def position(self):
+    def GetPosition(self) -> 'Types.Vec3[float]':
         return self._position
 
-    @position.setter
-    def position(self, value: Types.hints.position_3d):
+    def SetPosition(self, value: 'Types.hints.position_3d'):
         self._position = Types.Vec3[float].New(value)
         self._UpdateInstanceAttributes('view')
 
-    @property
-    def rotation(self):
+    def GetRotation(self) -> Types.Quaternion[float]:
         return self._rotation
 
-    @rotation.setter
-    def rotation(self, value: Types.hints.rotation):
+    def SetRotation(self, value: Types.hints.rotation):
         self._rotation = Types.Quaternion[float].New(value)
         self._UpdateInstanceAttributes('view')
 
@@ -350,14 +361,6 @@ class Camera(
         self._UpdateInstanceAttributes('resolution', 'projection')
 
     @property
-    def resolution(self):
-        return self.GetResolution()
-
-    @resolution.setter
-    def resolution(self, value: Types.hints.size_2d):
-        self.SetResolution(value)
-
-    @property
     def window(self):
         return self._window
 
@@ -383,14 +386,6 @@ class Camera(
     def SetNear(self, value: float):
         self._near = value
 
-    @property
-    def near(self):
-        return self.GetNear()
-
-    @near.setter
-    def near(self, value: float):
-        self.SetNear(value)
-
     def GetFar(self) -> float:
         if self._far is None:
             raise
@@ -401,31 +396,10 @@ class Camera(
             raise
         self._far = value
 
-    @property
-    def far(self):
-        return self.GetFar()
-
-    @far.setter
-    def far(self, value: float):
-        self.SetFar(value)
-
     def GetFov(self) -> float:
         if self._fov is None:
             raise
         return self._fov
-
-    def SetFov(self, value: float):
-        if 0 > value >= 180:
-            raise ValueError()
-        self._fov = value
-
-    @property
-    def fov(self):
-        return self.GetFar()
-
-    @fov.setter
-    def fov(self, value: float):
-        self.SetFov(value)
 
     @property
     def instance_dtype(self):

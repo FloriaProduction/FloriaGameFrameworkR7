@@ -12,3 +12,6 @@ class Function(ComponentNamed):
         super().__init__(name)
 
         self.source = source
+
+    def GetSource(self) -> str:
+        return self.source

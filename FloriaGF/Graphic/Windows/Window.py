@@ -9,7 +9,7 @@ from ...Config import Config
 from ..Objects.VAO import VAO
 from ...AsyncEvent import AsyncEvent
 from ..Camera import Camera
-from ...Stopwatch import Stopwatch
+from ...Stopwatch import stopwatch
 
 
 class Window(Abc.Graphic.Windows.Window):
@@ -81,9 +81,6 @@ class Window(Abc.Graphic.Windows.Window):
         if visible:
             self.visible = True
 
-        self._stopwatch_Simulate = Stopwatch()
-        self._stopwatch_Simulation = Stopwatch()
-
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         with self.Bind():
             self.input_manager.Dispose()
@@ -100,30 +97,29 @@ class Window(Abc.Graphic.Windows.Window):
     def _CloseCallback(self, window: GL.Window.GLFWWindow):
         self.Close()
 
-    @t.final
+    @stopwatch
     def Simulate(self):
-        with self._stopwatch_Simulate:
-            self.on_simulate.Invoke(self)
+        self.on_simulate.Invoke(self)
 
-            if self._closed:
-                return
+        if self._closed:
+            return
 
-            elif self._should_close:
-                self._PerformClose()
-                return
+        elif self._should_close:
+            self._PerformClose()
+            return
 
-            with self.Bind():
-                self.Simulation()
-                GL.Window.SwapBuffers(self.glfw_window)
+        with self.Bind():
+            self.Simulation()
+            GL.Window.SwapBuffers(self.glfw_window)
 
-            self.on_simulated.Invoke(self)
+        self.on_simulated.Invoke(self)
 
+    @stopwatch
     def Simulation(self):
-        with self._stopwatch_Simulation:
-            self.input_manager.Simulate()
+        self.input_manager.Simulate()
 
-            self.camera.Render()
-            self.camera.Draw()
+        self.camera.Render()
+        self.camera.Draw()
 
     def _PerformClose(self):
         self.on_close.Invoke(self)

@@ -71,32 +71,33 @@ class Camera(
     @abstractmethod
     def ubo(self) -> 'BO': ...
 
-    @property
     @abstractmethod
-    def resolution(self) -> 'Types.Vec2[int]': ...
-    @resolution.setter
+    def GetPosition(self) -> 'Types.Vec3[float]': ...
+
     @abstractmethod
-    def resolution(self, value: 'tuple[int, int] | Types.Vec2[int]'): ...
+    def SetPosition(self, value: 'Types.hints.position_3d'): ...
 
     @property
-    @abstractmethod
-    def position(self) -> 'Types.Vec3[float]': ...
+    def position(self):
+        return self.GetPosition()
+
     @position.setter
+    def position(self, value: 'Types.hints.position_3d'):
+        self.SetPosition(value)
+
     @abstractmethod
-    def position(
-        self,
-        value: 'Types.hints.position_3d',
-    ): ...
+    def GetRotation(self) -> 'Types.Quaternion[float]': ...
+
+    @abstractmethod
+    def SetRotation(self, value: 'Types.hints.rotation'): ...
 
     @property
-    @abstractmethod
-    def rotation(self) -> 'Types.Quaternion[float]': ...
+    def rotation(self):
+        return self.GetRotation()
+
     @rotation.setter
-    @abstractmethod
-    def rotation(
-        self,
-        value: 'Types.hints.rotation',
-    ): ...
+    def rotation(self, value: 'Types.hints.rotation'):
+        self.SetRotation(value)
 
     @property
     @abstractmethod
@@ -146,3 +147,52 @@ class Camera(
     @scale.setter
     def scale(self, value: float):
         self.SetScale(value)
+
+    @abstractmethod
+    def GetFov(self) -> float: ...
+
+    @property
+    def fov(self):
+        return self.GetFov()
+
+    @abstractmethod
+    def GetFar(self) -> float: ...
+
+    @abstractmethod
+    def SetFar(self, value: float): ...
+
+    @property
+    def far(self):
+        return self.GetFar()
+
+    @far.setter
+    def far(self, value: float):
+        self.SetFar(value)
+
+    @abstractmethod
+    def GetNear(self) -> float: ...
+
+    @abstractmethod
+    def SetNear(self, value: float): ...
+
+    @property
+    def near(self):
+        return self.GetNear()
+
+    @near.setter
+    def near(self, value: float):
+        self.SetNear(value)
+
+    @abstractmethod
+    def GetResolution(self) -> Types.Vec2[int]: ...
+
+    @abstractmethod
+    def SetResolution(self, value: Types.hints.size_2d): ...
+
+    @property
+    def resolution(self):
+        return self.GetResolution()
+
+    @resolution.setter
+    def resolution(self, value: Types.hints.size_2d):
+        self.SetResolution(value)

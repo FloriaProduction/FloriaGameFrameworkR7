@@ -10,7 +10,7 @@ from ..Config import Config
 from ..Loggers import window_manager_logger
 from ..Sequences import WindowSequence
 from ..AsyncEvent import AsyncEvent
-from ..Stopwatch import Stopwatch
+from ..Stopwatch import stopwatch
 
 
 class WindowManager(
@@ -51,39 +51,34 @@ class WindowManager(
         self._on_close = AsyncEvent['WindowManager']()
         self._on_closed = AsyncEvent['WindowManager']()
 
-        self._stopwatch_Simulate = Stopwatch()
-        self._stopwatch_Register = Stopwatch()
-        self._stopwatch_Remove = Stopwatch()
-
-    @t.final
+    @stopwatch
     async def Simulate(self):
-        with self._stopwatch_Simulate:
-            self.on_simulate.Invoke(self)
+        self.on_simulate.Invoke(self)
 
-            self._simulate_time = perf_counter()
+        self._simulate_time = perf_counter()
 
-            for window in self.sequence:
-                window.Simulate()
+        for window in self.sequence:
+            window.Simulate()
 
-            self.on_simulated.Invoke(self)
+        self.on_simulated.Invoke(self)
 
+    @stopwatch
     def Register[TItem: Abc.Graphic.Windows.Window](self, item: TItem) -> TItem:
-        with self._stopwatch_Register:
-            window_manager_logger.info(f'Register {item}')
-            result = t.cast(TItem, super().Register(item))
+        window_manager_logger.info(f'Register {item}')
+        result = t.cast(TItem, super().Register(item))
 
-            @result.on_closed.Register
-            async def _(window: Abc.Graphic.Windows.Window):
-                await self._RemoveClosedWindows()
-                if self.count == 0:
-                    Core.Stop()
+        @result.on_closed.Register
+        async def _(window: Abc.Graphic.Windows.Window):
+            await self._RemoveClosedWindows()
+            if self.count == 0:
+                Core.Stop()
 
-            return result
+        return result
 
+    @stopwatch
     def Remove(self, *args: Abc.Window | t.Any):
-        with self._stopwatch_Remove:
-            window_manager_logger.info(f'Remove {t.cast(Abc.Window, args[0])}')
-            return super().Remove(*args)
+        window_manager_logger.info(f'Remove {t.cast(Abc.Window, args[0])}')
+        return super().Remove(*args)
 
     def Close(self):
         self.on_close.Invoke(self)

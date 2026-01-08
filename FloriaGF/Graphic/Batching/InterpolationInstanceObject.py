@@ -3,7 +3,7 @@ import typing as t
 from ... import Abc, Types, Validator, Utils, Protocols
 from ...Core import Core
 from ...Timer import VariableTimer
-from ...Stopwatch import Stopwatch
+from ...Stopwatch import stopwatch
 from .InstanceObject import InstanceObject
 
 
@@ -26,8 +26,6 @@ class InterpolationInstanceObject[
         '_update_transform_reduce_timer',
         '_update_transform_position_tick',
         '_update_transform_scale_tick',
-        #
-        '_stopwatch_UpdateTransform',
     )
 
     def __init__(
@@ -62,8 +60,6 @@ class InterpolationInstanceObject[
         self._last_position: t.Optional[Types.Vec3[float]] = None
         self._last_scale: t.Optional[Types.Vec3[float]] = None
 
-        self._stopwatch_UpdateTransform = Stopwatch()
-
     def _GetUpdateTick(self):
         return Core.sps_timer.tick
 
@@ -73,19 +69,19 @@ class InterpolationInstanceObject[
     def _RemoveUpdateEventFunc(self, id: int):
         self.batch.window.on_simulate.Remove(id)
 
+    @stopwatch
     def UpdateTransform(self, *args: t.Any, **kwargs: t.Any):
-        with self._stopwatch_UpdateTransform:
-            if (
-                self.batch.window.on_simulate.count > self.UPDATE_TRANSFORM_THRESHOLD_DOWNGRADE
-                and not self._update_transform_reduce_timer.Try()
-            ):
-                return
+        if (
+            self.batch.window.on_simulate.count > self.UPDATE_TRANSFORM_THRESHOLD_DOWNGRADE
+            and not self._update_transform_reduce_timer.Try()
+        ):
+            return
 
-            if Validator.AllIsNone((self._last_position, self._last_scale)):
-                self._RemoveEventUpdateTransform()
-                return
+        if Validator.AllIsNone((self._last_position, self._last_scale)):
+            self._RemoveEventUpdateTransform()
+            return
 
-            self._UpdateInstanceAttributes('model_matrix')
+        self._UpdateInstanceAttributes('model_matrix')
 
     def _RemoveEventUpdateTransform(self):
         if self._update_transform_event_id is not None:

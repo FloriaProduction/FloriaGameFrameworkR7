@@ -12,11 +12,11 @@ scheme_item_attrib = t.Union[
     str,
 ]
 
-TAttrib = t.TypeVar('TAttrib', bound=str, default=scheme_item_attrib, covariant=True)
+TName = t.TypeVar('TName', bound=str, default=scheme_item_attrib, covariant=True)
 
 
-class SchemeItem(t.TypedDict, t.Generic[TAttrib]):
-    attrib: TAttrib
+class SchemeItem(t.TypedDict, t.Generic[TName]):
+    name: TName
     type: 'GL.hints.glsl_type'
 
 

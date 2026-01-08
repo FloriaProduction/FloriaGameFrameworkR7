@@ -27,9 +27,6 @@ class InstanceObject[
         '__update_instance_fields',
         '__instance_data_cache',
         '_model_mat',
-        #
-        '_stopwatch_GetInstanceData',
-        '_stopwatch_UpdateInstanceField',
     )
 
     def __init__(
@@ -63,11 +60,11 @@ class InstanceObject[
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         self.batch.Remove(self, None)
 
-    def _GetIntanceAttributeItems(self) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem[InstanceObject.ATTRIBS], ...]:
+    def GetIntanceAttributeItems(self) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem[InstanceObject.ATTRIBS], ...]:
         return tuple(self.material.program.scheme.get('instance', {}).values())
 
-    def _GetInstanceAttribute(self, attrib: InstanceObject.ATTRIBS) -> t.Any:
-        if attrib == 'model_matrix':
+    def _GetInstanceAttribute(self, name: InstanceObject.ATTRIBS) -> t.Any:
+        if name == 'model_matrix':
             return self._GetModelMatrix(
                 self.position,
                 self.rotation,
@@ -76,12 +73,14 @@ class InstanceObject[
 
         raise RuntimeError()
 
-    def _GetInstanceAttributeCache(self, attrib: InstanceObject.ATTRIBS) -> t.Optional[t.Any]:
-        return super()._GetInstanceAttributeCache(attrib)
+    def _GetInstanceAttributeCache(self, name: InstanceObject.ATTRIBS) -> t.Optional[t.Any]:
+        return super()._GetInstanceAttributeCache(name)
 
-    def _UpdateInstanceAttributes(self, *fields: InstanceObject.ATTRIBS, all: bool = False):
-        update = len(self._update_instance_attribute_names) == 0
-        super()._UpdateInstanceAttributes(*fields, all=all)
+    def _UpdateInstanceAttributes(self, *names: InstanceObject.ATTRIBS, all: bool = False):
+        update = self.request_intance_update is False  # Если до вызова обновление не требовалось, то обновляем Batch
+
+        super()._UpdateInstanceAttributes(*names, all=all)
+
         if update:
             self._UpdateBatch()
 

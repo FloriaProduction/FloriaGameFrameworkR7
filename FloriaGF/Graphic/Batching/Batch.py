@@ -8,7 +8,7 @@ from ..Objects.BO import BO
 from ..Objects.VAO import VAO
 from ...Sequences.InstanceObjectSequence import InstanceObjectSequence
 from ...Flag import Flag
-from ...Stopwatch import Stopwatch
+from ...Stopwatch import Stopwatch, stopwatch
 
 
 class BatchGroup:
@@ -30,11 +30,8 @@ class BatchGroup:
         'ebo_indices',
         '_update_all_buffer',
         #
-        '_stopwatch_SetupGroup',
-        '_stopwatch_Update',
         '_stopwatch_Update_All',
         '_stopwatch_Update_Partical',
-        '_stopwatch_Draw',
     )
 
     def __init__(
@@ -57,79 +54,67 @@ class BatchGroup:
         self.material: Abc.Material = obj.material
         self.scheme = obj.material.program.scheme
         self.instance_dtype = obj.GetInstanceDType()
-        # self.instance_dtype: np.dtype[np.void] = np.dtype(
-        #     [
-        #         (
-        #             item['attrib'],
-        #             *Convert.GLSLTypeToNumpy(item['type']),
-        #         )
-        #         for _, item in self.scheme.get('instance', {}).items()
-        #     ]
-        # )
 
         self._update_all_buffer: t.Optional[np.ndarray] = None
 
-        self._stopwatch_SetupGroup = Stopwatch()
-        self._stopwatch_Update = Stopwatch()
         self._stopwatch_Update_All = Stopwatch()
         self._stopwatch_Update_Partical = Stopwatch()
-        self._stopwatch_Draw = Stopwatch()
 
         self.vao, self.vbo_vertices, self.vbo_texcoords, self.vbo_instances, self.ebo_indices = self.SetupGroup()
 
+    @stopwatch
     def SetupGroup(self) -> tuple[VAO, BO, t.Optional[BO], t.Optional[BO], t.Optional[BO]]:
-        with self._stopwatch_SetupGroup:
-            with self.batch.window.Bind() as window:
-                vao = VAO(window)
-                with vao.Bind() as vao:
-                    vbo_vertices = BO(window, 'array_buffer')
-                    with vbo_vertices.Bind() as vbo:
+        with self.batch.window.Bind() as window:
+            vao = VAO(window)
+            with vao.Bind() as vao:
+                vbo_vertices = BO(window, 'array_buffer')
+                with vbo_vertices.Bind() as vbo:
+                    if (
+                        vertice := next(
+                            (item for item in self.scheme['base'].items() if item[1]['name'] == 'vertice'),
+                            None,
+                        )
+                    ) is None:
+                        raise RuntimeError()
+
+                    vao.VertexAttribPointer(vertice[0], vertice[1]['type'])
+                    vbo.SetData(self.mesh.vertices)
+
+                vbo_texcoords = None
+                if self.mesh.texcoords is not None:
+                    vbo_texcoords = BO(window, 'array_buffer')
+                    with vbo_texcoords.Bind() as vbo:
                         if (
-                            vertice := next(
-                                (item for item in self.scheme['base'].items() if item[1]['attrib'] == 'vertice'),
+                            texcoord := next(
+                                (item for item in self.scheme['base'].items() if item[1]['name'] == 'texcoord'),
                                 None,
                             )
                         ) is None:
                             raise RuntimeError()
 
-                        vao.VertexAttribPointer(vertice[0], vertice[1]['type'])
-                        vbo.SetData(self.mesh.vertices)
+                        vao.VertexAttribPointer(texcoord[0], texcoord[1]['type'])
+                        vbo.SetData(self.mesh.texcoords)
 
-                    vbo_texcoords = None
-                    if self.mesh.texcoords is not None:
-                        vbo_texcoords = BO(window, 'array_buffer')
-                        with vbo_texcoords.Bind() as vbo:
-                            if (
-                                texcoord := next(
-                                    (item for item in self.scheme['base'].items() if item[1]['attrib'] == 'texcoord'),
-                                    None,
-                                )
-                            ) is None:
-                                raise RuntimeError()
+                vbo_instances = None
+                if 'instance' in self.scheme:
+                    vbo_instances = BO(window, 'array_buffer')
+                    with vbo_instances.Bind():
+                        for index, item in self.scheme['instance'].items():
+                            vao.VertexAttribPointer(
+                                index,
+                                item['type'],
+                                self.instance_dtype.itemsize,
+                                self.instance_dtype.fields[item['name']][1],  # type: ignore
+                                attrib_divisor=1,
+                            )
 
-                            vao.VertexAttribPointer(texcoord[0], texcoord[1]['type'])
-                            vbo.SetData(self.mesh.texcoords)
+                ebo_indices = None
+                if self.mesh.indices is not None:
+                    ebo_indices = BO(window, 'element_array_buffer')
+                    with ebo_indices.Bind() as ebo:
+                        ebo.SetData(self.mesh.indices)
 
-                    vbo_instances = None
-                    if 'instance' in self.scheme:
-                        vbo_instances = BO(window, 'array_buffer')
-                        with vbo_instances.Bind():
-                            for index, item in self.scheme['instance'].items():
-                                vao.VertexAttribPointer(
-                                    index,
-                                    item['type'],
-                                    self.instance_dtype.itemsize,
-                                    self.instance_dtype.fields[item['attrib']][1],  # type: ignore
-                                    attrib_divisor=1,
-                                )
-
-                    ebo_indices = None
-                    if self.mesh.indices is not None:
-                        ebo_indices = BO(window, 'element_array_buffer')
-                        with ebo_indices.Bind() as ebo:
-                            ebo.SetData(self.mesh.indices)
-
-            return vao, vbo_vertices, vbo_texcoords, vbo_instances, ebo_indices
+        return vao, vbo_vertices, vbo_texcoords, vbo_instances, ebo_indices
 
     def Register(self, obj: Abc.InstanceObject):
         if self._freeze:
@@ -157,84 +142,84 @@ class BatchGroup:
         if (count := self.count) > 0 and len(self.update_pool) / count > 0.5:
             self.update_all = True
 
+    @stopwatch
     def Update(self):
-        with self._stopwatch_Update:
-            if self.vbo_instances is None:
-                self.update_pool.clear()
-                self.update_all = False
-                return
+        if self.vbo_instances is None:
+            self.update_pool.clear()
+            self.update_all = False
+            return
 
-            with self._freeze.Bind():
-                if self.update_all:
-                    with self._stopwatch_Update_All:
-                        if self._update_all_buffer is None or self._update_all_buffer.shape[0] != self.count:
-                            self._update_all_buffer = np.zeros(self.count, dtype=self.instance_dtype)
+        with self._freeze.Bind():
+            if self.update_all:
+                with self._stopwatch_Update_All:
+                    if self._update_all_buffer is None or self._update_all_buffer.shape[0] != self.count:
+                        self._update_all_buffer = np.zeros(self.count, dtype=self.instance_dtype)
 
-                        for offset, id in enumerate(self.ids):
-                            self._update_all_buffer[offset] = tuple(self.batch.GetObject(id).GetInstanceData())
-                            self.ids[id] = offset
+                    for offset, id in enumerate(self.ids):
+                        self._update_all_buffer[offset] = tuple(self.batch.GetObject(id).GetInstanceData().values())
+                        self.ids[id] = offset
 
-                        with self.vbo_instances.Bind() as vbo:
-                            vbo.SetData(self._update_all_buffer, 'stream_draw')
+                    with self.vbo_instances.Bind() as vbo:
+                        vbo.SetData(self._update_all_buffer, 'stream_draw')
 
-                        self.update_all = False
-                        self.update_pool.clear()
+                    self.update_all = False
+                    self.update_pool.clear()
 
-                if len(self.update_pool) > 0:
-                    with self._stopwatch_Update_Partical:
-                        sorted_ids = sorted(
-                            ((offset, id) for id in self.update_pool if (offset := self.ids[id]) is not None),
-                            key=lambda item: item[0],
-                        )
+            if len(self.update_pool) > 0:
+                with self._stopwatch_Update_Partical:
+                    sorted_ids = sorted(
+                        ((offset, id) for id in self.update_pool if (offset := self.ids[id]) is not None),
+                        key=lambda item: item[0],
+                    )
 
-                        if len(sorted_ids) == 0:
+                    if len(sorted_ids) == 0:
+                        return
+
+                    self.update_pool = self.update_pool.difference(sorted_ids)
+
+                    current_group: list[tuple[t.Any, ...]] = []
+                    current_start_offset = sorted_ids[0][0]
+                    last_offset = current_start_offset - 1
+
+                    def Flush():
+                        nonlocal current_group, current_start_offset
+                        if not current_group or self.vbo_instances is None:
                             return
 
-                        self.update_pool = self.update_pool.difference(sorted_ids)
+                        with self.vbo_instances.Bind() as vbo:
+                            vbo.SetSubData(
+                                current_start_offset * self.instance_dtype.itemsize,
+                                np.array(current_group, dtype=self.instance_dtype),
+                            )
+                        current_group.clear()
 
-                        current_group: list[tuple[t.Any, ...]] = []
-                        current_start_offset = sorted_ids[0][0]
-                        last_offset = current_start_offset - 1
+                    for offset, id in sorted_ids:
+                        if offset > last_offset + 1 and current_group:
+                            Flush()
+                            current_start_offset = offset
 
-                        def Flush():
-                            nonlocal current_group, current_start_offset
-                            if not current_group or self.vbo_instances is None:
-                                return
+                        current_group.append(tuple(self.batch.GetObject(id).GetInstanceData().values()))
+                        last_offset = offset
 
-                            with self.vbo_instances.Bind() as vbo:
-                                vbo.SetSubData(
-                                    current_start_offset * self.instance_dtype.itemsize,
-                                    np.array(current_group, dtype=self.instance_dtype),
-                                )
-                            current_group.clear()
+                    Flush()
 
-                        for offset, id in sorted_ids:
-                            if offset > last_offset + 1 and current_group:
-                                Flush()
-                                current_start_offset = offset
-
-                            current_group.append(tuple(self.batch.GetObject(id).GetInstanceData()))
-                            last_offset = offset
-
-                        Flush()
-
+    @stopwatch
     def Draw(self, camera: Abc.Camera):
-        with self._stopwatch_Draw:
-            with self.vao.Bind():
-                with self.material.Bind(camera):
-                    if self.mesh.indices is None or self.ebo_indices is None:
-                        GL.Draw.ArraysInstanced(
+        with self.vao.Bind():
+            with self.material.Bind(camera):
+                if self.mesh.indices is None or self.ebo_indices is None:
+                    GL.Draw.ArraysInstanced(
+                        self.mesh.primitive,
+                        self.mesh.count,
+                        self.count,
+                    )
+                else:
+                    with self.ebo_indices.Bind():
+                        GL.Draw.ElementsInstanced(
                             self.mesh.primitive,
-                            self.mesh.count,
+                            len(self.mesh.indices),
                             self.count,
                         )
-                    else:
-                        with self.ebo_indices.Bind():
-                            GL.Draw.ElementsInstanced(
-                                self.mesh.primitive,
-                                len(self.mesh.indices),
-                                self.count,
-                            )
 
     @property
     def count(self) -> int:
@@ -264,8 +249,6 @@ class Batch(
         '_vao_quad',
         '_storage',
         '_groups',
-        '_stopwatch_Render',
-        '_stopwatch_Draw',
     )
 
     def __init__(
@@ -303,32 +286,29 @@ class Batch(
 
         self._fbo: t.Optional[FBO] = None
 
-        self._stopwatch_Render = Stopwatch()
-        self._stopwatch_Draw = Stopwatch()
-
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         self.RemoveAll()
 
+    @stopwatch
     def Render(self, camera: Abc.Camera):
-        with self._stopwatch_Render:
-            if self._fbo is None or self._fbo.size != self.window.camera.resolution:
-                self._fbo = FBO(self.window, self.window.camera.resolution)
+        if self._fbo is None or self._fbo.size != self.window.camera.resolution:
+            self._fbo = FBO(self.window, self.window.camera.resolution)
 
-            with self.fbo.Bind():
-                GL.ClearColor((0, 0, 0, 0))
-                GL.Clear('color', 'depth')
+        with self.fbo.Bind():
+            GL.ClearColor((0, 0, 0, 0))
+            GL.Clear('color', 'depth')
 
-                for group in (*self._groups.values(),):
-                    if group.update_all or len(group.update_pool) > 0:
-                        group.Update()
+            for group in (*self._groups.values(),):
+                if group.update_all or len(group.update_pool) > 0:
+                    group.Update()
 
-                    group.Draw(camera)
+                group.Draw(camera)
 
+    @stopwatch
     def Draw(self):
-        with self._stopwatch_Draw:
-            with self._vao_quad.Bind():
-                with self.program_compose.Bind(self.fbo):
-                    GL.Draw.Arrays('triangle_fan', 4)
+        with self._vao_quad.Bind():
+            with self.program_compose.Bind(self.fbo):
+                GL.Draw.Arrays('triangle_fan', 4)
 
     def _RegisterGroup[TGroup: BatchGroup](self, group: TGroup) -> TGroup:
         if group.id in self._groups:

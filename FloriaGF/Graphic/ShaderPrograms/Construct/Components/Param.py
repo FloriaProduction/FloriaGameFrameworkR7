@@ -16,6 +16,9 @@ class Param(ComponentNamed):
         self.type: GL.hints.glsl_type = type
         self.direction = direction
 
+    def GetSource(self) -> str:
+        return f'{'flat' if self.type in ('int', 'uint') else ''} {self.direction} {self.type} {self.name};'
+
 
 class ParamIn(Param):
     def __init__(

@@ -205,7 +205,8 @@ class World:
         self,
         component: t.Type[Component],
     ) -> set[UUID]:
-        return set(self._components[component].keys())
+        data = self._components.get(component, None)
+        return set(() if data is None else data.keys())
 
     def GetEntitiesByTags(self, tags: t.Iterable[str]):
         return set(

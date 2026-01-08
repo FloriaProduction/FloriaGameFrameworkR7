@@ -1,12 +1,16 @@
 import typing as t
-from abc import ABC
+from abc import ABC, abstractmethod
 
 
 class Component(ABC):
-    pass
+    @abstractmethod
+    def GetSource(self) -> str: ...
 
 
 class ComponentNamed(Component):
+    __auto_name__: bool = True
+    '''Если включено и не задано имя, автоматически подставит его из переменной, к которой присвоен компонент.'''
+
     def __init__(self, name: t.Optional[str] = None):
         super().__init__()
 

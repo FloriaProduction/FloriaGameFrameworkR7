@@ -25,7 +25,7 @@ class ShaderConstuctMeta(ABCMeta):
             break
 
         for varname, var in (item for item in namespace.items() if isinstance(item[1], C.Component)):
-            if isinstance(var, C.ComponentNamed) and var.name is None:
+            if isinstance(var, C.ComponentNamed) and var.__auto_name__ and var.name is None:
                 var.name = varname
 
             if isinstance(var, C.Attrib):
@@ -39,7 +39,6 @@ class ShaderConstuctMeta(ABCMeta):
                     layout_index += 1
 
         cls = t.cast(type, super().__new__(mcls, name, bases, namespace, **kw))  # pyright: ignore[reportCallIssue]
-
         cls.__layout_index = layout_index
 
         return cls
@@ -56,6 +55,7 @@ class ShaderConstuct(metaclass=ShaderConstuctMeta):
 
         attribs: set[C.Attrib] = set()
         uniforms: set[C.Uniform] = set()
+        uniform_blocks: set[C.UniformBlock] = set()
         pastes: set[C.Paste] = set()
         params: set[C.Param] = set()
         functions: set[C.Function] = set()
@@ -81,6 +81,9 @@ class ShaderConstuct(metaclass=ShaderConstuctMeta):
             elif isinstance(var, C.Uniform):
                 uniforms.add(var)
 
+            elif isinstance(var, C.UniformBlock):
+                uniform_blocks.add(var)
+
             elif isinstance(var, C.Function):
                 if isinstance(var, C.Main):
                     main = var
@@ -100,44 +103,20 @@ class ShaderConstuct(metaclass=ShaderConstuctMeta):
         if main is None:
             raise ValueError()
 
-        attribs_source: list[str] = []
-        for attrib in attribs:
-            attribs_source.append(
-                f'layout(location = {Validator.NotNone(attrib.index)}) in {attrib.type} {Validator.NotNone(attrib.name)};'
-            )
-
-        uniforms_source: list[str] = []
-        for unfirom in uniforms:
-            uniforms_source.append(
-                f'uniform {unfirom.type} {unfirom.name}{f' = {unfirom.value}' if unfirom.value is not None else ''};'
-            )
-
-        functions_source: list[str] = []
-        for func in functions:
-            functions_source.append(func.source)
-
-        params_source: list[str] = []
-        for param in params:
-            params_source.append(
-                f'{'flat' if param.type in ('int', 'uint') else ''} {param.direction} {param.type} {param.name};'
-            )
-
-        paste_source: list[str] = []
-        for paste in pastes:
-            paste_source.append(paste.source)
-
         source = f'''
-            {version.source}
+            {version.GetSource()}
 
-            {'\n'.join(attribs_source)}
+            {'\n'.join(attrib.GetSource() for attrib in attribs)}
 
-            {'\n'.join(uniforms_source)}
-        
-            {'\n'.join(params_source)}
+            {'\n'.join(uniform.GetSource() for uniform in uniforms)}
 
-            {'\n'.join(functions_source)}
+            {'\n'.join(block.GetSource() for block in uniform_blocks)}
             
-            {'\n'.join(paste_source)}
+            {'\n'.join(param.GetSource() for param in params)}
+
+            {'\n'.join(func.GetSource() for func in functions)}
+            
+            {'\n'.join(paste.GetSource() for paste in pastes)}
 
             {main.source}
         '''
@@ -145,7 +124,7 @@ class ShaderConstuct(metaclass=ShaderConstuctMeta):
         return source
 
     @classmethod
-    def BuildScheme(cls):
+    def BuildScheme(cls) -> Abc.Graphic.ShaderPrograms.Scheme:
         scheme_base: dict[int, Abc.Graphic.ShaderPrograms.SchemeItem] = {}
         scheme_instance: dict[int, Abc.Graphic.ShaderPrograms.SchemeItem] = {}
 
@@ -162,12 +141,12 @@ class ShaderConstuct(metaclass=ShaderConstuctMeta):
 
                 if var.instanced:
                     scheme_instance[index] = Abc.Graphic.ShaderPrograms.SchemeItem(
-                        attrib=name,
+                        name=name,
                         type=var.type,
                     )
                 else:
                     scheme_base[index] = Abc.Graphic.ShaderPrograms.SchemeItem(
-                        attrib=name,
+                        name=name,
                         type=var.type,
                     )
 

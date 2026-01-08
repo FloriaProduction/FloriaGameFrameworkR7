@@ -8,14 +8,13 @@ from .ShaderProgram import ShaderProgram, ShaderConstuct, C
 
 
 class CameraVertexShader(ShaderConstuct):
-    camera = C.Paste(
-        '''
-        layout (std140) uniform Camera {
-            mat4 projection;
-            mat4 view;
-            vec2 resolution;
-        } camera;
-        '''
+    camera = C.UniformBlock(
+        'Camera',
+        (
+            {'name': 'projection', 'type': 'mat4'},
+            {'name': 'view', 'type': 'mat4'},
+            {'name': 'resolution', 'type': 'vec2'},
+        ),
     )
 
 
@@ -35,3 +34,7 @@ class CameraShaderProgram(
             )
 
             yield self
+
+    @classmethod
+    def GetCameraUBOAttributeItems(cls) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem, ...]:
+        return t.cast(CameraVertexShader, cls.__vertex__).camera.GetScheme()

@@ -10,7 +10,11 @@ def Arrays(
     count: int,
     first: int = 0,
 ):
-    GL.glDrawArrays(Convert.ToOpenGLPrimitive(primitive), first, count)
+    GL.glDrawArrays(
+        Convert.ToOpenGLPrimitive(primitive),
+        first,
+        count,
+    )
 
 
 def ArraysInstanced(

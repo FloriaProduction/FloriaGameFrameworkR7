@@ -6,3 +6,6 @@ class Paste(Component):
         super().__init__()
 
         self.source = source
+
+    def GetSource(self) -> str:
+        return self.source

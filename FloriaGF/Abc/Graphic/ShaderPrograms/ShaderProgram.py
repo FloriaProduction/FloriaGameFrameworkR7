@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from ... import Mixins
 
 if t.TYPE_CHECKING:
-    from .Scheme import Scheme
+    from .Scheme import Scheme, SchemeItem
 
 
 class ShaderProgram(
@@ -30,3 +30,13 @@ class ShaderProgram(
     @abstractmethod
     def Bind(self, *args: t.Any, **kwargs: t.Any):
         yield self
+
+    @staticmethod
+    def _ValidateSchemeCompatibility(
+        camera_scheme: 'tuple[SchemeItem, ...]',
+        shader_scheme: 'tuple[SchemeItem, ...]',
+    ) -> bool:
+        for shader_item, cam_item in zip(shader_scheme, camera_scheme):
+            if cam_item['name'] != shader_item['name'] or cam_item['type'] != shader_item['type']:
+                return False
+        return True

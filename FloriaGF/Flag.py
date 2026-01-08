@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-from typing import Any
 
 
 class Flag:
@@ -58,15 +57,15 @@ class Flag:
         finally:
             self._value = False
 
-    def Set(self) -> None:
+    def Set(self):
         """Устанавливает флаг в состояние True"""
         self._value = True
 
-    def Reset(self) -> None:
+    def Reset(self):
         """Сбрасывает флаг в состояние False"""
         self._value = False
 
-    def Toggle(self) -> None:
+    def Toggle(self):
         """Инвертирует текущее состояние флага"""
         self._value = not self._value
 

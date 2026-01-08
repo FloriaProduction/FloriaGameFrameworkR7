@@ -3,10 +3,9 @@ import numpy as np
 from pyrr import Vector3
 from time import perf_counter
 
-from FloriaGF import Abc, Core, Validator, Utils, Types, Convert, VariableTimer, Stopwatch
+from FloriaGF import Abc, Core, Validator, Utils, Types, Convert, VariableTimer, stopwatch
 from FloriaGF import AsyncEvent
 from FloriaGF.Graphic.Batching import InterpolationInstanceObject
-from FloriaGF.Types.Vec import Vec3
 
 from ..Materials.Sprite3DMaterial import Sprite3DMaterial
 from .. import Meshes
@@ -112,36 +111,34 @@ class Sprite3DObject[
         self._on_change_animation = AsyncEvent[t.Self, t.Optional['Animation']]()
         self._on_pause = AsyncEvent[t.Self, 'Animation', bool]()
 
-        self._stopwatch_UpdateAnimation = Stopwatch()
-
         self.SetAnimation(animation, scale=scale is None)
 
+    @stopwatch
     def UpdateAnimation(self, *args: t.Any, **kwargs: t.Any):
-        with self._stopwatch_UpdateAnimation:
-            if not self._update_animation_reduce_timer.Try():
-                return
+        if not self._update_animation_reduce_timer.Try():
+            return
 
-            update_animation = (anim := self.animation) is not None and anim.count > 1
-            update_opacity = self._last_opacity is not None
+        update_animation = (anim := self.animation) is not None and anim.count > 1
+        update_opacity = self._last_opacity is not None
 
-            if True in (update_animation, update_opacity):
-                if update_animation:
-                    current_frame = self.frame
-                    previous_frame = t.cast(t.Optional[int], self._GetInstanceAttributeCache('frame'))
+        if True in (update_animation, update_opacity):
+            if update_animation:
+                current_frame = self.frame
+                previous_frame = t.cast(t.Optional[int], self._GetInstanceAttributeCache('frame'))
 
-                    if current_frame == previous_frame:
-                        return
+                if current_frame == previous_frame:
+                    return
 
-                    # TODO: доработать события смены кадра и завершения цикла
+                # TODO: доработать события смены кадра и завершения цикла
 
-                    self._UpdateInstanceAttributes('frame')
+                self._UpdateInstanceAttributes('frame')
 
-                if update_opacity:
-                    self._UpdateInstanceAttributes('opacity')
+            if update_opacity:
+                self._UpdateInstanceAttributes('opacity')
 
-            else:
-                self._RemoveEventUpdateAnimation()
-                return
+        else:
+            self._RemoveEventUpdateAnimation()
+            return
 
     def _RemoveEventUpdateAnimation(self):
         if self._update_animation_event_id is not None:
@@ -205,35 +202,20 @@ class Sprite3DObject[
 
         self.on_pause.Invoke(self, anim, True)
 
-    # def _GetIntanceAttributeItems(self) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem[Sprite3DObject.ATTRIBS], ...]:
-    #     return (
-    #         *super()._GetIntanceAttributeItems(),
-    #         {
-    #             'attrib': 'opacity',
-    #             'type': 'float',
-    #         },
-    #         {
-    #             'attrib': 'frame',
-    #             'type': 'float',
-    #         },
-    #         # 'opacity',
-    #         # 'frame',
-    #     )
-
-    def _GetInstanceAttribute(self, attrib: Sprite3DObject.ATTRIBS) -> t.Any:
-        if attrib == 'opacity':
+    def _GetInstanceAttribute(self, name: Sprite3DObject.ATTRIBS) -> t.Any:
+        if name == 'opacity':
             return self.opacity
 
-        elif attrib == 'frame':
+        elif name == 'frame':
             return self.frame
 
-        return super()._GetInstanceAttribute(attrib)
+        return super()._GetInstanceAttribute(name)
 
-    def _GetInstanceAttributeCache(self, attrib: Sprite3DObject.ATTRIBS) -> t.Optional[t.Any]:
-        return super()._GetInstanceAttributeCache(attrib)
+    def _GetInstanceAttributeCache(self, name: Sprite3DObject.ATTRIBS) -> t.Optional[t.Any]:
+        return super()._GetInstanceAttributeCache(name)
 
-    def _UpdateInstanceAttributes(self, *fields: Sprite3DObject.ATTRIBS, all: bool = False):
-        return super()._UpdateInstanceAttributes(*fields, all=all)
+    def _UpdateInstanceAttributes(self, *names: Sprite3DObject.ATTRIBS, all: bool = False):
+        return super()._UpdateInstanceAttributes(*names, all=all)
 
     @property
     def animation(self) -> t.Optional['Animation']:
