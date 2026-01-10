@@ -1,9 +1,8 @@
 import typing as t
 import numpy as np
-from pyrr import Vector3
 from time import perf_counter
 
-from FloriaGF import Abc, Core, Validator, Utils, Types, Convert, VariableTimer, stopwatch
+from FloriaGF import Abc, Core, Validator, Utils, Types, Convert, VariableTimer, stopwatch, InterpolationField, InterpolationState
 from FloriaGF import AsyncEvent
 from FloriaGF.Graphic.Batching import InterpolationInstanceObject
 
@@ -94,13 +93,19 @@ class Sprite3DObject[
             **kwargs,
         )
 
-        self._update_animation_event_id: t.Optional[int] = None
-        self._update_animation_reduce_timer = VariableTimer(self.REDUCED_INTERVAL_UPDATE_ANIMATION)
-        self._update_animation_opacity_tick: t.Optional[int] = None
+        self._interp_animation = InterpolationState(
+            lambda: self._UpdateInstanceAttributes('frame'),
+            lambda: (anim := self.animation) is not None and anim.count > 1,
+            self.batch.window.on_simulate,
+        )
+        self._interp_opacity = InterpolationField(
+            opacity,
+            lambda prev, next, progress: Utils.Smooth(prev, next, progress),
+            lambda value: self._UpdateInstanceAttributes('opacity'),
+            self.batch.window.on_simulate,
+        )
 
-        self._last_opacity: t.Optional[float] = None
         self._opacity: float = opacity
-
         self._visible: bool = visible
 
         self._start_time: float = 0
@@ -113,42 +118,6 @@ class Sprite3DObject[
 
         self.SetAnimation(animation, scale=scale is None)
 
-    @stopwatch
-    def UpdateAnimation(self, *args: t.Any, **kwargs: t.Any):
-        if not self._update_animation_reduce_timer.Try():
-            return
-
-        update_animation = (anim := self.animation) is not None and anim.count > 1
-        update_opacity = self._last_opacity is not None
-
-        if True in (update_animation, update_opacity):
-            if update_animation:
-                current_frame = self.frame
-                previous_frame = t.cast(t.Optional[int], self._GetInstanceAttributeCache('frame'))
-
-                if current_frame == previous_frame:
-                    return
-
-                # TODO: доработать события смены кадра и завершения цикла
-
-                self._UpdateInstanceAttributes('frame')
-
-            if update_opacity:
-                self._UpdateInstanceAttributes('opacity')
-
-        else:
-            self._RemoveEventUpdateAnimation()
-            return
-
-    def _RemoveEventUpdateAnimation(self):
-        if self._update_animation_event_id is not None:
-            self._RemoveUpdateEventFunc(self._update_animation_event_id)
-            self._update_animation_event_id = None
-
-    def _RegisterEventUpdateAnimation(self):
-        if self._update_animation_event_id is None:
-            self._update_animation_event_id = self._RegisterUpdateEventFunc(self.UpdateAnimation)
-
     def SetAnimation(
         self,
         animation: t.Optional['Animation'],
@@ -159,7 +128,7 @@ class Sprite3DObject[
     ):
         self.SetMaterial(
             self.material.Modify(animation=animation),
-            update_batch=False,
+            # update_batch=False,
         )
         now = perf_counter()
 
@@ -168,10 +137,10 @@ class Sprite3DObject[
             self._pause_time = now if pause else None
 
             if scale:
-                super(InterpolationInstanceObject, self).SetScale(Convert.FromPIX(animation.size).ToVec3(0))
+                self.SetScale(Convert.FromPIX(animation.size).ToVec3(0))
 
             if animation.count > 1 and not pause:
-                self._RegisterEventUpdateAnimation()
+                self._interp_animation.RegisterEvent()
         else:
             self._start_time = now
             self._pause_time = None
@@ -187,8 +156,9 @@ class Sprite3DObject[
         self._start_time = perf_counter() - time
         self._pause_time = None
 
-        self._RegisterEventUpdateAnimation()
+        self._interp_animation.RegisterEvent()
         self._UpdateInstanceAttributes('frame')
+
         self.on_pause.Invoke(self, anim, False)
 
     def Pause(self):
@@ -197,7 +167,7 @@ class Sprite3DObject[
 
         self._pause_time = perf_counter()
 
-        self._RemoveEventUpdateAnimation()
+        self._interp_animation.RemoveEvent()
         self._UpdateInstanceAttributes('frame')
 
         self.on_pause.Invoke(self, anim, True)
@@ -226,33 +196,14 @@ class Sprite3DObject[
         return self._pause_time is not None
 
     def GetOpacity(self) -> float:
-        if (
-            self._last_opacity is None
-            or (progress := Core.sps_timer.GetProgressByTick(Validator.NotNone(self._update_animation_opacity_tick))) >= 1
-        ):
-            self._last_opacity = None
-            return self._opacity
-
-        return Utils.Smooth(
-            self._last_opacity,
-            self._opacity,
-            progress,
-        )
+        return self._interp_opacity.GetValue()
 
     def SetOpacity(
         self,
         value: float,
         flash: bool = True,
     ):
-        if flash:
-            self._last_opacity = None
-        else:
-            self._last_opacity = self._opacity
-            self._update_animation_opacity_tick = Core.sps_timer.tick
-            self._RegisterEventUpdateAnimation()
-
-        self._opacity = max(0, min(1, value))
-        self._UpdateInstanceAttributes('opacity')
+        self._interp_opacity.SetValue(value, flash)
 
     @property
     def opacity(self) -> float:

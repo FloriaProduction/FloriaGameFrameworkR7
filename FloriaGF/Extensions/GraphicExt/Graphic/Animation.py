@@ -7,7 +7,7 @@ if t.TYPE_CHECKING:
     from FloriaGF import Assets
 
 
-class Animation(Abc.Mixins.Signaturable):
+class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
     __slots__ = (
         '_name',
         '_image',
@@ -92,3 +92,12 @@ class Animation(Abc.Mixins.Signaturable):
     @property
     def frame_duration(self) -> float:
         return self.duration / self.count
+
+    
+    def _GetStrKwargs(self) -> dict[str, t.Any]:
+        return {
+            **super()._GetStrKwargs(),
+            'name': f'"{self.name}"',
+            'count': self.count,
+            'dur': self.duration,
+        }

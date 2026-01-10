@@ -11,6 +11,7 @@ import numpy as np
 from OpenGL import GL
 from contextlib import contextmanager
 import math
+import glm
 
 if t.TYPE_CHECKING:
     from . import Types, Protocols
@@ -166,16 +167,66 @@ def Smooth(
     return result
 
 
+# def SmoothIter(
+#     iter_1: t.Iterable[float],
+#     iter_2: t.Iterable[float],
+#     k: float,
+#     min: float = 0.0001,
+# ) -> t.Iterable[float]:
+#     return itertools.starmap(
+#         lambda x, y: Smooth(x, y, k, min),
+#         zip(iter_1, iter_2, strict=True),
+#     )
+
+
 def SmoothIter(
-    iter_1: t.Iterable[float],
-    iter_2: t.Iterable[float],
+    i1: t.Iterable[float],
+    i2: t.Iterable[float],
     k: float,
     min: float = 0.0001,
 ) -> t.Iterable[float]:
-    return itertools.starmap(
-        lambda x, y: Smooth(x, y, k, min),
-        zip(iter_1, iter_2, strict=True),
+    """
+    Линейная интерполяция между двумя итерируемыми последовательностями чисел.
+
+    Args:
+        i1: Первая последовательность чисел
+        i2: Вторая последовательность чисел
+        k: Коэффициент интерполяции от 0.0 до 1.0
+        min: Минимальное различие для завершения интерполяции
+
+    Returns:
+        Интерполированные значения
+
+    Raises:
+        ValueError: Если последовательности разной длины
+    """
+    return map(
+        lambda item: Smooth(item[0], item[1], k, min),
+        zip(i1, i2, strict=True),
     )
+
+
+def Slerp(
+    q1: 'Types.Quaternion[float] | tuple[float, float, float, float]',
+    q2: 'Types.Quaternion[float] | tuple[float, float, float, float]',
+    k: float,
+) -> tuple[float, float, float, float]:
+    """
+    Сферическая линейная интерполяция (SLERP) между двумя кватернионами.
+
+    Args:
+        q1: Начальный кватернион
+        q2: Конечный кватернион
+        k: Параметр интерполяции от 0.0 до 1.0
+
+    Returns:
+        Интерполированный кватернион: w x y z
+
+    Raises:
+        ValueError: Если кватернионы не нормализованы
+    """
+
+    return glm.slerp(q1, q2, k).to_tuple()
 
 
 def Distance2D(val1: tuple[float, float], val2: tuple[float, float]) -> float:

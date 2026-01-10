@@ -124,6 +124,11 @@ class Window(
     def SetResizable(self, value: bool): ...
 
     @abstractmethod
+    def GetMaximized(self) -> bool: ...
+    @abstractmethod
+    def SetMaximized(self, value: bool): ...
+
+    @abstractmethod
     def GetDecorated(self) -> bool: ...
     @abstractmethod
     def SetDecorated(self, value: bool): ...
@@ -215,6 +220,14 @@ class Window(
     @resizable.setter
     def resizable(self, value: bool):
         self.SetResizable(value)
+
+    @property
+    def maximized(self) -> bool:
+        return self.GetMaximized()
+
+    @maximized.setter
+    def maximized(self, value: bool):
+        self.SetMaximized(value)
 
     @property
     def background_color(self) -> 'Types.RGB[int]':

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "FloriaGameFrameworkR7"
-version = "0.0.3"
+version = "0.0.4"
 description = "Экспериментальный самописный игровой фреймворк."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -15,7 +15,7 @@ dependencies = [
     "PyOpenGL==3.1.10",
     "glfw==2.10.0",
     "numpy==2.3.4",
-    "pyrr==0.10.3",
+    "pyglm==2.8.3",
     "PILLOW==12.0.0",
     "aiofiles==25.1.0",
 ]
@@ -55,7 +55,7 @@ Repository = "https://github.com/FloriaProduction/FloriaGameFrameworkR7"
 
 
 [project.optional-dependencies]
-dev = ["black>=25.12.0"]
+dev = ["black>=25.12.0", "pyright"]
 
 
 [tool.black]

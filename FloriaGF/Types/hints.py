@@ -1,11 +1,11 @@
 import typing as t
 
 if t.TYPE_CHECKING:
-    import pyrr
     import numpy as np
     import pathlib
 
     from .Vec import Vec2, Vec3
+    from .Quaternion import Quaternion
     from .Color import RGB, RGBA
 
 
@@ -14,7 +14,6 @@ number = float | int
 position_3d = t.Union[
     tuple[number, number, number],
     'Vec3[number]',
-    'pyrr.Vector3',
     t.Iterable[number],
 ]
 offset_2d = t.Union[
@@ -26,16 +25,16 @@ offset_3d = t.Union[
     'Vec3[int]',
 ]
 rotation = t.Union[
-    tuple[number, number, number],
+    tuple[number, number, number],  # xyz
+    tuple[number, number, number, number],  # wxyz
     'Vec3[number]',
-    'pyrr.Quaternion',
+    'Quaternion[number]',
     t.Iterable[number],
 ]
 scale_3d = t.Union[
     number,
     tuple[number, number, number],
     'Vec3[number]',
-    'pyrr.Vector3',
     t.Iterable[number],
 ]
 size_2d = t.Union[

@@ -16,11 +16,12 @@ class Window(Abc.Graphic.Windows.Window):
     def __init__(
         self,
         size: Types.hints.size_2d,
-        title: str,
+        title: str = 'Title',
         name: t.Optional[str] = None,
         *args: t.Any,
         visible: bool = True,
-        resizable: bool = False,
+        resizable: bool = True,
+        maximized: bool = False,
         decorated: bool = True,
         floating: bool = False,
         vsync: t.Optional[GL.hints.vsync] = None,
@@ -45,10 +46,17 @@ class Window(Abc.Graphic.Windows.Window):
         glfw.window_hint(glfw.SAMPLES, 4)
 
         glfw.window_hint(glfw.RESIZABLE, resizable)
+        glfw.window_hint(glfw.MAXIMIZED, maximized)
         glfw.window_hint(glfw.DECORATED, decorated)
         glfw.window_hint(glfw.FLOATING, floating)
 
         self._window: t.Optional[GL.Window.GLFWWindow] = GL.Window.Create(size, title)
+
+        self._on_simulate = AsyncEvent[Abc.Window]()
+        self._on_simulated = AsyncEvent[Abc.Window]()
+        self._on_close = AsyncEvent[Abc.Window]()
+        self._on_closed = AsyncEvent[Abc.Window]()
+        self._on_resize = AsyncEvent[Abc.Window, Types.Vec2[int]]()
 
         self._input_manager: Managers.InputManager = Managers.InputManager(self)
         self._shader_manager: Managers.ShaderManager = Managers.ShaderManager(self)
@@ -72,21 +80,15 @@ class Window(Abc.Graphic.Windows.Window):
         self._closed: bool = False
         glfw.set_window_close_callback(self.glfw_window, self._CloseCallback)
 
-        self._on_simulate = AsyncEvent[Abc.Window]()
-        self._on_simulated = AsyncEvent[Abc.Window]()
-        self._on_close = AsyncEvent[Abc.Window]()
-        self._on_closed = AsyncEvent[Abc.Window]()
-        self._on_resize = AsyncEvent[Abc.Window, Types.Vec2[int]]()
-
         if visible:
             self.visible = True
 
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         with self.Bind():
             self.input_manager.Dispose()
-            self._shader_manager.Dispose()
-            self._material_manager.Dispose()
-            self._camera.Dispose()
+            self.shader_manager.Dispose()
+            self.material_manager.Dispose()
+            self.camera.Dispose()
 
         GL.Window.Delete(self.glfw_window)
         self._window = None
@@ -229,6 +231,12 @@ class Window(Abc.Graphic.Windows.Window):
 
     def SetResizable(self, value: bool):
         glfw.set_window_attrib(self.glfw_window, glfw.RESIZABLE, value)
+
+    def GetMaximized(self) -> bool:
+        return glfw.get_window_attrib(self.glfw_window, glfw.MAXIMIZED)
+
+    def SetMaximized(self, value: bool):
+        glfw.set_window_attrib(self.glfw_window, glfw.MAXIMIZED, value)
 
     def GetDecorated(self) -> bool:
         return glfw.get_window_attrib(self.glfw_window, glfw.DECORATED)

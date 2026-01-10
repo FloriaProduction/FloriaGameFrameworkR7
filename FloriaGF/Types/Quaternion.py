@@ -1,18 +1,24 @@
 import typing as t
-import pyrr
-import numpy as np
+import glm
 
 
 class Quaternion[T: t.Any = float](t.NamedTuple):
+    w: T
     x: T
     y: T
     z: T
-    w: T
 
     @classmethod
-    def New(cls, value: t.Iterable[T] | t.Self | pyrr.Quaternion, /) -> t.Self:
-        return (
-            cls(*value)
-            if isinstance(value, pyrr.Quaternion)
-            else cls(*pyrr.quaternion.create_from_eulers(value, dtype=np.float32))
-        )
+    def New(cls, value: t.Iterable[T] | t.Self, /) -> t.Self:
+        match len(value := tuple(value)):
+            case 1:
+                return cls(*((value[0],) * 4))
+
+            case 3:
+                return cls(*glm.quat(value))  # pyright: ignore[reportArgumentType]
+
+            case 4:
+                return cls(*value)
+
+            case _:
+                raise

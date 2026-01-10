@@ -1,9 +1,10 @@
 import typing as t
 from uuid import uuid4, UUID
-import pyrr
+import glm
 import numpy as np
 
 from ... import Abc, Types, Validator
+from ...Stopwatch import stopwatch
 
 
 class InstanceObject[
@@ -46,8 +47,9 @@ class InstanceObject[
         self._id: UUID = uuid4()
 
         self._position: Types.Vec3[float] = Types.Vec3[float].New(position)
-        self._rotation: Types.Vec3[float] = Types.Vec3[float].New(rotation)
+        self._rotation: Types.Quaternion[float] = Types.Quaternion[float].New(rotation)
         self._scale: Types.Vec3[float] = Types.Vec3[float].New(scale)
+
         self._model_mat: t.Optional[np.typing.NDArray[np.float32]] = None
 
         self._material = t.cast(TMaterial, Validator.Instance(material, Abc.Graphic.Materials.Material))
@@ -94,28 +96,12 @@ class InstanceObject[
         self._position = Types.Vec3[float].New(value)
         self._UpdateInstanceAttributes('model_matrix')
 
-    @property
-    def position(self):
-        return self.GetPosition()
-
-    @position.setter
-    def position(self, value: Types.hints.position_3d):
-        self.SetPosition(value)
-
-    def GetRotation(self) -> Types.Vec3[float]:
+    def GetRotation(self) -> Types.Quaternion[float]:
         return self._rotation
 
     def SetRotation(self, value: Types.hints.rotation):
-        self._rotation = Types.Vec3[float].New(value)
+        self._rotation = Types.Quaternion[float].New(value)
         self._UpdateInstanceAttributes('model_matrix')
-
-    @property
-    def rotation(self):
-        return self.GetRotation()
-
-    @rotation.setter
-    def rotation(self, value: Types.hints.rotation):
-        self.SetRotation(value)
 
     def GetScale(self) -> Types.Vec3[float]:
         return self._scale
@@ -123,14 +109,6 @@ class InstanceObject[
     def SetScale(self, value: Types.hints.scale_3d):
         self._scale = Types.Vec3[float].New(value)
         self._UpdateInstanceAttributes('model_matrix')
-
-    @property
-    def scale(self):
-        return self.GetScale()
-
-    @scale.setter
-    def scale(self, value: Types.hints.scale_3d):
-        self.SetScale(value)
 
     @property
     def batch(self):
@@ -145,26 +123,20 @@ class InstanceObject[
         return self._material
 
     @staticmethod
+    @stopwatch
     def _GetModelMatrix(
         position: Types.Vec3[float],
-        rotation: Types.Vec3[float],
+        rotation: Types.Quaternion[float],
         scale: Types.Vec3[float],
-    ) -> pyrr.Matrix44:
-        return pyrr.Matrix44(  # type: ignore
-            pyrr.matrix44.create_from_eulers(
-                rotation,
-                dtype=np.float32,
-            )
-            @ pyrr.matrix44.create_from_scale(
-                scale,
-                dtype=np.float32,
-            )
-            @ pyrr.matrix44.create_from_translation(
-                position,
-                dtype=np.float32,
-            ),
-            dtype=np.float32,
-        )
+    ) -> tuple[
+        tuple[float, float, float, float],
+        tuple[float, float, float, float],
+        tuple[float, float, float, float],
+        tuple[float, float, float, float],
+    ]:
+        return (
+            glm.translate(glm.mat4(1), glm.vec3(*position)) * glm.mat4_cast(rotation) * glm.scale(glm.mat4(1.0), glm.vec3(*scale))
+        ).to_tuple()
 
     def SetMaterial(self, value: TMaterial, *, update_batch: bool = True) -> TMaterial:
         self._material = value

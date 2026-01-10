@@ -19,6 +19,7 @@ from .PeriodicTrigger import PeriodicTrigger
 from .Flag import Flag
 from .Stopwatch import Stopwatch, stopwatch
 from .AsyncEvent import AsyncEvent
+from .InterpolationField import InterpolationField, InterpolationState
 
 from .Config import ConfigCls, Config  # pyright: ignore[reportGeneralTypeIssues]
 from .Core import CoreCls, Core  # pyright: ignore[reportGeneralTypeIssues]

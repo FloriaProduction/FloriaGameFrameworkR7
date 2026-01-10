@@ -1,5 +1,4 @@
 import typing as t
-import pyrr
 
 
 class Vec2[T: t.Any](t.NamedTuple):
@@ -57,15 +56,11 @@ class Vec3[T: t.Any](t.NamedTuple):
     def New(cls, value: T, /) -> t.Self: ...
     @t.overload
     @classmethod
-    def New(cls, value: tuple[T, T, T] | t.Self | pyrr.Vector3 | t.Iterable[T], /) -> t.Self: ...
+    def New(cls, value: tuple[T, T, T] | t.Self | t.Iterable[T], /) -> t.Self: ...
 
     @classmethod
-    def New(cls, value: pyrr.Vector3 | t.Iterable[T] | T) -> t.Self:
-        return (
-            cls(*value.tolist())
-            if isinstance(value, pyrr.Vector3)
-            else cls(*value) if isinstance(value, t.Iterable) else cls(value, value, value)
-        )
+    def New(cls, value: t.Iterable[T] | T) -> t.Self:
+        return cls(*value) if isinstance(value, t.Iterable) else cls(value, value, value)
 
     def ToVec2(self, exclude_index: t.Literal[0, 1, 2]) -> Vec2[T]:
         return Vec2(*(x for i, x in enumerate(self) if i != exclude_index))

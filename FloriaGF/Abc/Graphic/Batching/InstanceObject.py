@@ -23,26 +23,47 @@ class InstanceObject(
 ):
     __slots__ = ()
 
-    @property
     @abstractmethod
-    def position(self) -> 'Types.Vec3[float]': ...
+    def GetPosition(self) -> Types.Vec3[float]: ...
+
+    @abstractmethod
+    def SetPosition(self, value: Types.hints.position_3d): ...
+
+    @property
+    def position(self):
+        return self.GetPosition()
+
     @position.setter
+    def position(self, value: Types.hints.position_3d):
+        self.SetPosition(value)
+
     @abstractmethod
-    def position(self, value: 'Types.hints.position_3d'): ...
+    def GetRotation(self) -> Types.Quaternion[float]: ...
+
+    @abstractmethod
+    def SetRotation(self, value: Types.hints.rotation): ...
 
     @property
-    @abstractmethod
-    def rotation(self) -> 'Types.Vec3[float]': ...
+    def rotation(self) -> 'Types.Quaternion[float]':
+        return self.GetRotation()
+
     @rotation.setter
+    def rotation(self, value: 'Types.hints.rotation'):
+        self.SetRotation(value)
+
     @abstractmethod
-    def rotation(self, value: 'Types.hints.rotation'): ...
+    def GetScale(self) -> Types.Vec3[float]: ...
+
+    @abstractmethod
+    def SetScale(self, value: Types.hints.scale_3d): ...
 
     @property
-    @abstractmethod
-    def scale(self) -> 'Types.Vec3[float]': ...
+    def scale(self):
+        return self.GetScale()
+
     @scale.setter
-    @abstractmethod
-    def scale(self, value: 'Types.hints.scale_3d'): ...
+    def scale(self, value: Types.hints.scale_3d):
+        self.SetScale(value)
 
     @property
     @abstractmethod

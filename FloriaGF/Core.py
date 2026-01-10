@@ -68,11 +68,11 @@ class CoreCls(Abc.Core):
         self._scheduler = Utils.CoalesceLazy(self._scheduler, lambda: TimeoutScheduler())
         self._timer_storage = Utils.CoalesceLazy(self._timer_storage, lambda: TimerStorage())
 
-        await self.on_initialized.InvokeAsync(self)
-
         self._fps_timer = VariableTimer(Config.FPS_delay)
         self._sps_timer = FixedTimer(Config.SPS_delay)
         self._tps_timer = VariableTimer(Config.TPS_delay)
+
+        await self.on_initialized.InvokeAsync(self)
 
         core_logger.info(f'Initialized for {perf_counter() - t1:.4f} sec')
 
