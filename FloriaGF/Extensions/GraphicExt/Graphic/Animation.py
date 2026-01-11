@@ -93,7 +93,6 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
     def frame_duration(self) -> float:
         return self.duration / self.count
 
-    
     def _GetStrKwargs(self) -> dict[str, t.Any]:
         return {
             **super()._GetStrKwargs(),

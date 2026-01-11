@@ -94,7 +94,7 @@ class Sprite3DObject[
         )
 
         self._interp_animation = InterpolationState(
-            lambda: self._UpdateInstanceAttributes('frame'),
+            self._UpdateAnimation,
             lambda: (anim := self.animation) is not None and anim.count > 1,
             self.batch.window.on_simulate,
         )
@@ -110,6 +110,7 @@ class Sprite3DObject[
 
         self._start_time: float = 0
         self._pause_time: t.Optional[float] = None
+        self._last_frame: int = 0
 
         self._on_change_frame = AsyncEvent[t.Self, 'Animation', int]()
         self._on_end_animation = AsyncEvent[t.Self, 'Animation']()
@@ -117,6 +118,37 @@ class Sprite3DObject[
         self._on_pause = AsyncEvent[t.Self, 'Animation', bool]()
 
         self.SetAnimation(animation, scale=scale is None)
+
+    def _UpdateAnimation(self, *args: t.Any, **kwargs: t.Any):
+        if (anim := self.animation) is None or anim.count <= 1:
+            return
+
+        now_frame = max(
+            round(
+                ((self._pause_time if self._pause_time is not None else Core.window_manager.simulate_time) - self._start_time)
+                / (anim.duration / anim.count),
+            ),
+            0,
+        )
+        last_frame = self._last_frame
+
+        if now_frame == last_frame:
+            return
+
+        for i in range(last_frame, now_frame):
+            if i > 0 and i % anim.count == 0:
+                self.on_end_animation.Invoke(self, anim)
+                
+            if self.animation != anim:
+                return
+                
+            self.on_change_frame.Invoke(self, anim, i % anim.count)
+            
+            if self.animation != anim:
+                return
+        
+        self._last_frame = now_frame
+        self._UpdateInstanceAttributes('frame')
 
     def SetAnimation(
         self,
@@ -126,11 +158,8 @@ class Sprite3DObject[
         frame: int = 0,
         pause: bool = False,
     ):
-        self.SetMaterial(
-            self.material.Modify(animation=animation),
-            # update_batch=False,
-        )
-        now = perf_counter()
+        self.SetMaterial(self.material.Modify(animation=animation))
+        now = Core.window_manager.simulate_time
 
         if animation is not None:
             self._start_time = now - animation.frame_duration * frame
@@ -144,6 +173,7 @@ class Sprite3DObject[
         else:
             self._start_time = now
             self._pause_time = None
+        self._last_frame = frame
 
         self._UpdateInstanceAttributes('frame')
         self.on_change_animation.Invoke(self, animation)
@@ -215,18 +245,23 @@ class Sprite3DObject[
 
     @property
     def frame(self) -> int:
-        frame: int = 0
-        if (anim := self.animation) is not None and anim.count > 1:
-            count = round(
-                max(
-                    ((self._pause_time if self._pause_time is not None else Core.window_manager.simulate_time) - self._start_time)
-                    / (anim.duration / anim.count),
-                    0,
-                )
-            )
-            frame = count % anim.count if count > 0 and anim.loop else min(count, anim.count - 1)
+        if (anim := self.animation) is None:
+            return 0
+        return frame % anim.count if (frame := self._last_frame) > 0 and anim.loop else min(frame, anim.count - 1)
 
-        return frame
+        # return self._last_frame
+        # frame: int = 0
+        # if (anim := self.animation) is not None and anim.count > 1:
+        #     count = round(
+        #         max(
+        #             ((self._pause_time if self._pause_time is not None else Core.window_manager.simulate_time) - self._start_time)
+        #             / (anim.duration / anim.count),
+        #             0,
+        #         )
+        #     )
+        #     frame = count % anim.count if count > 0 and anim.loop else min(count, anim.count - 1)
+
+        # return frame
 
     def GetVisible(self) -> bool:
         return self._visible

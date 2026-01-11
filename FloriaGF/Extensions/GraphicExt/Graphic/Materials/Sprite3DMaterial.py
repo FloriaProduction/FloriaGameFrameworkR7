@@ -76,6 +76,7 @@ class Sprite3DMaterial(Material[Sprite3DShaderProgram]):
             def _(window: Abc.Window):
                 cls._texture_arrays.pop(window.id, None)
 
+        # TODO: заменить идентификатор с имени на сам объект Animation
         if (texture := texture_arrays.Get(animation.name)) is None:
             texture = texture_arrays.Register(animation.name, animation.GetFrames(), window)
 

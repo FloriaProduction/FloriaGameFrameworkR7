@@ -2,7 +2,7 @@ import typing as t
 import asyncio
 from weakref import WeakMethod
 
-from .Stopwatch import stopwatch
+from .Stopwatch import Stopwatch
 
 
 P = t.ParamSpec('P')
@@ -57,11 +57,16 @@ class AsyncEvent(t.Generic[P]):
     __slots__ = (
         '_funcs',
         '_id',
+        '_invoke_stopwatch',
+        '_invoke_async_stopwatch',
     )
 
     def __init__(self) -> None:
         self._funcs: dict[int, EventWrappedFunction[P]] = {}
         self._id: int = 0
+        
+        self._invoke_stopwatch = Stopwatch()
+        self._invoke_async_stopwatch = Stopwatch()
 
     def _GenID(self):
         self._id += 1
@@ -146,15 +151,17 @@ class AsyncEvent(t.Generic[P]):
 
         return tasks
 
-    @stopwatch
+    # @stopwatch
     async def InvokeAsync(self, *args: P.args, **kwargs: P.kwargs):
-        if len(tasks := self._Invoke(*args, **kwargs)) > 0:
-            await asyncio.gather(*tasks)
+        with self._invoke_async_stopwatch:
+            if len(tasks := self._Invoke(*args, **kwargs)) > 0:
+                await asyncio.gather(*tasks)
 
-    @stopwatch
+    # @stopwatch
     def Invoke(self, *args: P.args, **kwargs: P.kwargs):
-        for task in self._Invoke(*args, **kwargs):
-            task.add_done_callback(self._TaskDoneCallback)
+        with self._invoke_stopwatch:
+            for task in self._Invoke(*args, **kwargs):
+                task.add_done_callback(self._TaskDoneCallback)
 
     @staticmethod
     def _TaskDoneCallback(task: asyncio.Task[t.Any]) -> None:
