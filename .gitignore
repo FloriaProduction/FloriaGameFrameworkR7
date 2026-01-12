@@ -3,6 +3,7 @@
 *__pycache__/
 
 !FloriaGF/
+!Examples/
 !.gitignore
 !README.md
 !pyproject.toml

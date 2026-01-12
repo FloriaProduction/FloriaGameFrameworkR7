@@ -16,3 +16,6 @@
 ```bash
 pip install FloriaGameFrameworkR7
 ```
+
+## Примеры
+[Примеры работы](https://github.com/FloriaProduction/FloriaGameFrameworkR7/tree/main/Examples)

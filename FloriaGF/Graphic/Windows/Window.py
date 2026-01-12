@@ -6,7 +6,6 @@ from contextlib import contextmanager
 
 from ... import Abc, Utils, Managers, Convert, GL, Types
 from ...Config import Config
-from ..Objects.VAO import VAO
 from ...AsyncEvent import AsyncEvent
 from ..Camera import Camera
 from ...Stopwatch import stopwatch
@@ -18,7 +17,7 @@ class Window(Abc.Graphic.Windows.Window):
         size: Types.hints.size_2d,
         title: str = 'Title',
         name: t.Optional[str] = None,
-        *args: t.Any,
+        *,
         visible: bool = True,
         resizable: bool = True,
         maximized: bool = False,
@@ -27,7 +26,6 @@ class Window(Abc.Graphic.Windows.Window):
         vsync: t.Optional[GL.hints.vsync] = None,
         background_color: Types.hints.rgb = (255, 255, 255),
         double_buffer: bool = True,
-        **kwargs: t.Any,
     ):
         super().__init__()
 
