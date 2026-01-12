@@ -66,28 +66,6 @@ class Sprite3DMaterial(Material[Sprite3DShaderProgram]):
             kwargs.get('name', self.name),
         )
 
-    @classmethod
-    def _GetTexture(cls, window: Abc.Window, animation: 'Animation') -> Texture:
-        if (texture_arrays := cls._texture_arrays.get(window.id)) is None:
-            texture_arrays = TextureArrays()
-            cls._texture_arrays[window.id] = texture_arrays
-
-            @window.on_closed.Register
-            def _(window: Abc.Window):
-                cls._texture_arrays.pop(window.id, None)
-
-        # TODO: заменить идентификатор с имени на сам объект Animation
-        if (texture := texture_arrays.Get(animation.name)) is None:
-            texture = texture_arrays.Register(animation.name, animation.GetFrames(), window)
-
-        return texture
-
-    @property
-    def texture(self) -> t.Optional[Texture]:
-        if self._animation is None:
-            return None
-        return self._GetTexture(self.program.window, self._animation)
-
     @property
     def animation(self):
         return self._animation
@@ -95,7 +73,11 @@ class Sprite3DMaterial(Material[Sprite3DShaderProgram]):
     @contextmanager
     def Bind(self, camera: Abc.Camera, *args: t.Any, **kwargs: t.Any):
         with self.program.Bind(camera):
-            with texture.Bind() if (texture := self.texture) is not None else Utils.EmptyBind():
+            with (
+                texture.Bind()
+                if (texture := None if (anim := self.animation) is None else anim.GetTexture(self.program.window)) is not None
+                else Utils.EmptyBind()
+            ):
                 yield self
 
     def GetSignature(self):

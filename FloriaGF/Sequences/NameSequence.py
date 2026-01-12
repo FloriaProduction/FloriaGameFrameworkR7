@@ -88,12 +88,11 @@ class NameSequence(
 if t.TYPE_CHECKING:
 
     class Example(NameSequence[TItem], t.Generic[TItem]):
-        if t.TYPE_CHECKING:
 
-            # name
+        # name
 
-            def WithName(self, name: TName):
-                return t.cast(Example[TItem], super().WithName(name))
+        def WithName(self, name: TName):
+            return t.cast(Example[TItem], super().WithName(name))
 
-            def WithNames(self, names: t.Iterable[TName]):
-                return t.cast(Example[TItem], super().WithNames(names))
+        def WithNames(self, names: t.Iterable[TName]):
+            return t.cast(Example[TItem], super().WithNames(names))

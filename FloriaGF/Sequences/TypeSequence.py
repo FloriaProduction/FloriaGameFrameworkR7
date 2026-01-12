@@ -45,9 +45,8 @@ class TypeSequence(
 if t.TYPE_CHECKING:
 
     class Example(TypeSequence[TItem], t.Generic[TItem]):
-        if t.TYPE_CHECKING:
 
-            # type
+        # type
 
-            def OfType[U: t.Any](self, type: t.Type[U]):
-                return t.cast(Example[U], super().OfType(type))
+        def OfType[U: t.Any](self, type: t.Type[U]):
+            return t.cast(Example[U], super().OfType(type))

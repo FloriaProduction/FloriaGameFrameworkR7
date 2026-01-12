@@ -13,6 +13,7 @@ class Texture(
     Abc.Mixins.ID[int],
     Abc.Mixins.Binding,
     Abc.Mixins.Disposable,
+    Abc.Mixins.Repr,
 ):
     '''
     Все методы требуют контекста OpenGL
@@ -131,6 +132,10 @@ class Texture(
         return self._type
 
     @property
+    def depth(self):
+        return self._depth
+
+    @property
     def type_gl(self):
         return GL.Convert.ToOpenGLTextureType(self.type)
 
@@ -146,3 +151,12 @@ class Texture(
     @property
     def window(self):
         return self._window
+
+    def _GetStrKwargs(self) -> dict[str, t.Any]:
+        return {
+            **super()._GetStrKwargs(),
+            'id': self.id,
+            'type': self.type,
+            'size': self.size,
+            'depth': self.depth,
+        }

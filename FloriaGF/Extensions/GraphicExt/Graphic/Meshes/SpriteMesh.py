@@ -9,14 +9,14 @@ def CreateSpriteMesh(name: str = SPRITE_MESH_NAME) -> Abc.Mesh:
     return Mesh(
         'triangle_fan',
         (
-            -0.5,
-            -0.5,
-            0.5,
-            -0.5,
-            0.5,
-            0.5,
-            -0.5,
-            0.5,
+            0,
+            0,
+            1,
+            0,
+            1,
+            1,
+            0,
+            1,
         ),
         (
             0,

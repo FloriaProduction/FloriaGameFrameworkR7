@@ -58,7 +58,6 @@ class ShaderProgram(Abc.Graphic.ShaderPrograms.ShaderProgram):
                     fragment_id,
                 )
 
-        self._uniform_cache: dict[str, t.Any] = {}
         self._uniform_ids_cache: dict[str, int] = {}
         self._uniform_block_ids_cache: dict[str, int] = {}
 
@@ -121,12 +120,6 @@ class ShaderProgram(Abc.Graphic.ShaderPrograms.ShaderProgram):
             self._uniform_block_ids_cache[name] = loc = GL.ShaderProgram.GetUniformBlockIndex(self.id, name)
         return loc
 
-    # def CheckUniformCache(self, name: str, value: t.Any) -> bool:
-    #     if name in self._uniform_cache and self._uniform_cache[name] == value:
-    #         return True
-    #     self._uniform_cache[name] = value
-    #     return False
-
     def SetUniformFloat(self, name: str, value: float):
         _GL.glUniform1f(
             self.GetUniformLocation(name),
@@ -134,20 +127,20 @@ class ShaderProgram(Abc.Graphic.ShaderPrograms.ShaderProgram):
         )
 
     def SetUniformVector(self, name: str, value: tuple[float, ...]):
-        count = len(value)
         loc = self.GetUniformLocation(name)
 
-        if count == 2:
-            _GL.glUniform2f(loc, *value)
+        match len(value):
+            case 2:
+                _GL.glUniform2f(loc, *value)
 
-        elif count == 3:
-            _GL.glUniform3f(loc, *value)
+            case 3:
+                _GL.glUniform3f(loc, *value)
 
-        elif count == 4:
-            _GL.glUniform4f(loc, *value)
+            case 4:
+                _GL.glUniform4f(loc, *value)
 
-        else:
-            raise
+            case _:
+                raise
 
     @contextmanager
     def Bind(self, *args: t.Any, **kwargs: t.Any):

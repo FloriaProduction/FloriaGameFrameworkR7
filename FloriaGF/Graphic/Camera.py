@@ -449,6 +449,8 @@ class Camera(
 
     if t.TYPE_CHECKING:
 
-        def _GetInstanceAttributeCache(self, name: Camera.ATTRIBS | str) -> t.Optional[t.Any]: ...
+        def _GetInstanceAttributeCache(self, name: Camera.ATTRIBS | str) -> t.Optional[t.Any]:
+            return super()._GetInstanceAttributeCache(name)
 
-        def _UpdateInstanceAttributes(self, *names: Camera.ATTRIBS | str, all: bool = False): ...
+        def _UpdateInstanceAttributes(self, *names: Camera.ATTRIBS | str, all: bool = False):
+            return super()._UpdateInstanceAttributes(*names, all=all)

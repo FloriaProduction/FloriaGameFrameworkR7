@@ -88,12 +88,11 @@ class IDSequence(
 if t.TYPE_CHECKING:
 
     class Example(IDSequence[TItem], t.Generic[TItem]):
-        if t.TYPE_CHECKING:
+    
+        # id
 
-            # id
+        def WithID(self, id: TID):
+            return t.cast(Example[TItem], super().WithID(id))
 
-            def WithID(self, id: TID):
-                return t.cast(Example[TItem], super().WithID(id))
-
-            def WithIDS(self, ids: t.Iterable[TID]):
-                return t.cast(Example[TItem], super().WithIDS(ids))
+        def WithIDS(self, ids: t.Iterable[TID]):
+            return t.cast(Example[TItem], super().WithIDS(ids))

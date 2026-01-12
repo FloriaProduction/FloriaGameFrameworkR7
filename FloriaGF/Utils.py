@@ -67,14 +67,6 @@ async def WaitCors[T](
     return await asyncio.gather(*(cors if isinstance(cors, t.Iterable) else [cor async for cor in cors]))
 
 
-async def WaitFuncCors[T](
-    cor: t.Coroutine[t.Any, t.Any, T] | T,
-) -> T:
-    if isinstance(cor, t.Coroutine):
-        return await cor  # pyright: ignore[reportUnknownVariableType]
-    return cor
-
-
 async def YieldEvery[T: t.Any](
     items: t.Iterable[T],
     *,
@@ -167,18 +159,6 @@ def Smooth(
     return result
 
 
-# def SmoothIter(
-#     iter_1: t.Iterable[float],
-#     iter_2: t.Iterable[float],
-#     k: float,
-#     min: float = 0.0001,
-# ) -> t.Iterable[float]:
-#     return itertools.starmap(
-#         lambda x, y: Smooth(x, y, k, min),
-#         zip(iter_1, iter_2, strict=True),
-#     )
-
-
 def SmoothIter(
     i1: t.Iterable[float],
     i2: t.Iterable[float],
@@ -212,7 +192,7 @@ def Slerp(
     k: float,
 ) -> tuple[float, float, float, float]:
     """
-    Сферическая линейная интерполяция (SLERP) между двумя кватернионами.
+    Сферическая линейная интерполяция между двумя кватернионами.
 
     Args:
         q1: Начальный кватернион
@@ -229,12 +209,8 @@ def Slerp(
     return glm.slerp(q1, q2, k).to_tuple()
 
 
-def Distance2D(val1: tuple[float, float], val2: tuple[float, float]) -> float:
-    return math.sqrt((val1[0] - val2[0]) ** 2 + (val1[1] - val2[1]) ** 2)
-
-
-def Distance3D(val1: tuple[float, float, float], val2: tuple[float, float, float]) -> float:
-    return math.sqrt((val1[0] - val2[0]) ** 2 + (val1[1] - val2[1]) ** 2 + (val1[2] - val2[2]) ** 2)
+def Distance(i1: t.Iterable[float], i2: t.Iterable[float]) -> float:
+    return math.sqrt(sum((item[0] - item[1]) ** 2 for item in zip(i1, i2, strict=True)))
 
 
 def FirstOrDefault[T: t.Any, TDefault: t.Optional[t.Any]](data: t.Iterable[T], default: TDefault = None) -> T | TDefault:
@@ -276,3 +252,19 @@ def ExceptionHandler(handler: t.Optional[t.Callable[[Exception], t.Any]] = None)
             handler(ex)
         else:
             raise
+
+
+def ApplyToPairs[T: t.Any, U: t.Any](
+    func: t.Callable[[T, T], U] | t.Callable[[int, T, T], U],
+    i1: t.Iterable[T],
+    i2: t.Iterable[T],
+) -> t.Iterable[U]:
+    match len(inspect.signature(func).parameters):
+        case 2:
+            return (t.cast(t.Callable[[T, T], U], func)(a, b) for a, b in zip(i1, i2, strict=True))
+
+        case 3:
+            return (t.cast(t.Callable[[int, T, T], U], func)(i, a, b) for i, (a, b) in enumerate(zip(i1, i2, strict=True)))
+
+        case _:
+            raise TypeError("Функция должна принимать 2 или 3 аргумента")

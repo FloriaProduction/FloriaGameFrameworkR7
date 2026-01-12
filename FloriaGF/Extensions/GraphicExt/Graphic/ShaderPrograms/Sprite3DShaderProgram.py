@@ -11,6 +11,7 @@ class Sprite3DVertexShader(CameraVertexShader):
     model_matrix = C.AttribInst('mat4')
     opacity = C.AttribInst('float')
     frame = C.AttribInst('uint')
+    origin = C.AttribInst('vec2')
 
     fsh_texcoord = C.ParamOut('vec2')
     fsh_opacity = C.ParamOut('float')
@@ -27,7 +28,7 @@ class Sprite3DVertexShader(CameraVertexShader):
                 camera.projection *
                 camera.view *
                 model_matrix *
-                vec4(vertice.xy, 0.0, 1.0);
+                vec4(vertice.xy - origin, 0.0, 1.0);
         }
         '''
     )

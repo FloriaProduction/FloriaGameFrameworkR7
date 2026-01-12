@@ -64,7 +64,7 @@ class AsyncEvent(t.Generic[P]):
     def __init__(self) -> None:
         self._funcs: dict[int, EventWrappedFunction[P]] = {}
         self._id: int = 0
-        
+
         self._invoke_stopwatch = Stopwatch()
         self._invoke_async_stopwatch = Stopwatch()
 

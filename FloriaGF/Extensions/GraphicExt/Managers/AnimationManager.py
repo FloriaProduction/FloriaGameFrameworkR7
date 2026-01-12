@@ -1,7 +1,7 @@
 import typing as t
 from PIL.Image import Image
 
-from FloriaGF import Assets, Core, Utils
+from FloriaGF import Assets, Core, Utils, Types
 from FloriaGF.Managers import Manager
 
 from ..Graphic.Animation import Animation
@@ -37,6 +37,7 @@ class AnimationManager(
         count: int = 1,
         duration: float = 0,
         loop: bool = False,
+        points: t.Mapping[int, t.Mapping['Animation.POINT_NAME', Types.hints.offset_2d]] = {},
     ) -> Animation:
         '''
         Загружает и регистрирует анимацию
@@ -48,6 +49,7 @@ class AnimationManager(
                 count,
                 duration,
                 loop,
+                points,
             )
         )
 
@@ -57,6 +59,7 @@ class AnimationManager(
         count: t.NotRequired[int]
         duration: t.NotRequired[float]
         loop: t.NotRequired[bool]
+        points: t.NotRequired[t.Mapping[int, t.Mapping['Animation.POINT_NAME', Types.hints.offset_2d]]]
 
     async def LoadMany(self, *items: AnimationInfo):
         '''

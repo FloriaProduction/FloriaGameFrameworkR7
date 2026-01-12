@@ -156,6 +156,7 @@ class Stopwatch:
 
 # TODO: разные экземпляры классов имеют одинаковый stopwatch для их методов
 
+
 def stopwatch[
     TFunc: Protocols.Functions.SyncCallable[...],
 ](

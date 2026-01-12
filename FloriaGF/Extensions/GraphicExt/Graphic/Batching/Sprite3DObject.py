@@ -23,6 +23,7 @@ class Sprite3DObject[
         t.Literal[
             'opacity',
             'frame',
+            'origin',
         ],
     ]
 
@@ -136,19 +137,22 @@ class Sprite3DObject[
             return
 
         for i in range(last_frame, now_frame):
-            if i > 0 and i % anim.count == 0:
-                self.on_end_animation.Invoke(self, anim)
-                
-            if self.animation != anim:
-                return
-                
             self.on_change_frame.Invoke(self, anim, i % anim.count)
-            
+
             if self.animation != anim:
                 return
-        
+
+            if i > 0 and (i + 1) % anim.count == 0:
+                self.on_end_animation.Invoke(self, anim)
+
+            if self.animation != anim:
+                return
+
         self._last_frame = now_frame
-        self._UpdateInstanceAttributes('frame')
+        self._UpdateInstanceAttributes('frame', 'origin')
+
+    def GetAnimation(self):
+        return self.material.animation
 
     def SetAnimation(
         self,
@@ -175,8 +179,16 @@ class Sprite3DObject[
             self._pause_time = None
         self._last_frame = frame
 
-        self._UpdateInstanceAttributes('frame')
+        self._UpdateInstanceAttributes('frame', 'origin')
         self.on_change_animation.Invoke(self, animation)
+
+    @property
+    def animation(self) -> t.Optional['Animation']:
+        return self.GetAnimation()
+
+    @animation.setter
+    def animation(self, value: t.Optional['Animation']):
+        self.SetAnimation(value)
 
     def Play(self):
         if (anim := self.animation) is None or self._pause_time is None:
@@ -187,7 +199,7 @@ class Sprite3DObject[
         self._pause_time = None
 
         self._interp_animation.RegisterEvent()
-        self._UpdateInstanceAttributes('frame')
+        self._UpdateInstanceAttributes('frame', 'origin')
 
         self.on_pause.Invoke(self, anim, False)
 
@@ -198,7 +210,7 @@ class Sprite3DObject[
         self._pause_time = perf_counter()
 
         self._interp_animation.RemoveEvent()
-        self._UpdateInstanceAttributes('frame')
+        self._UpdateInstanceAttributes('frame', 'origin')
 
         self.on_pause.Invoke(self, anim, True)
 
@@ -209,6 +221,23 @@ class Sprite3DObject[
         elif name == 'frame':
             return self.frame
 
+        elif name == 'origin':
+            return (
+                (0, 1)
+                if (anim := self.animation) is None
+                else tuple(
+                    Utils.ApplyToPairs(
+                        lambda x, y: x / y if y != 0 else 0,
+                        Utils.ApplyToPairs(
+                            lambda i, x, y: x + y if i == 0 else x - y,
+                            (0, 32),
+                            anim.GetPoint('origin', self.frame),
+                        ),
+                        anim.size,
+                    )
+                )
+            )
+
         return super()._GetInstanceAttribute(name)
 
     def _GetInstanceAttributeCache(self, name: Sprite3DObject.ATTRIBS) -> t.Optional[t.Any]:
@@ -216,10 +245,6 @@ class Sprite3DObject[
 
     def _UpdateInstanceAttributes(self, *names: Sprite3DObject.ATTRIBS, all: bool = False):
         return super()._UpdateInstanceAttributes(*names, all=all)
-
-    @property
-    def animation(self) -> t.Optional['Animation']:
-        return self.material.animation
 
     @property
     def paused(self) -> bool:
