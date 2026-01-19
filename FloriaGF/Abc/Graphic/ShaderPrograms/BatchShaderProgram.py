@@ -18,18 +18,5 @@ class BatchShaderProgram(
     @contextmanager
     @abstractmethod
     def Bind(self, camera: 'Camera', *args: t.Any, **kwargs: t.Any):
-        if (
-            self._ValidateSchemeCompatibility(
-                camera.GetIntanceAttributeItems(),
-                self.GetCameraUBOAttributeItems(),
-            )
-            is False
-        ):
-            raise
-
         with super().Bind():
             yield self
-
-    @classmethod
-    @abstractmethod
-    def GetCameraUBOAttributeItems(cls) -> 'tuple[Abc.Graphic.ShaderPrograms.SchemeItem, ...]': ...

@@ -19,9 +19,12 @@ class ComponentNamed(Component):
     def SetName(self, name: str):
         self._name = name
 
+    def GetName(self) -> t.Optional[str]:
+        return self._name
+
     @property
     def name(self):
-        return self._name
+        return self.GetName()
 
     @name.setter
     def name(self, value: str):

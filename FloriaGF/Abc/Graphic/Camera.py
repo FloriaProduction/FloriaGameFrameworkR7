@@ -11,6 +11,7 @@ if t.TYPE_CHECKING:
     from ...Graphic.Objects.BO import BO
     from ...Managers.BatchObjectManager import BatchObjectManager
     from .ShaderPrograms.ComposeShaderProgram import ComposeShaderProgram
+    from ...AsyncEvent import AsyncEvent
 
 
 class Camera(
@@ -196,3 +197,7 @@ class Camera(
     @resolution.setter
     def resolution(self, value: Types.hints.size_2d):
         self.SetResolution(value)
+
+    @property
+    @abstractmethod
+    def on_dispose(self) -> 'AsyncEvent[t.Self]': ...

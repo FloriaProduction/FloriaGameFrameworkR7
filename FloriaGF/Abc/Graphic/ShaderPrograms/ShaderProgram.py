@@ -5,7 +5,8 @@ from contextlib import contextmanager
 from ... import Mixins
 
 if t.TYPE_CHECKING:
-    from .Scheme import Scheme, SchemeItem
+    from .Scheme import Scheme
+    from ....AsyncEvent import AsyncEvent
 
 
 class ShaderProgram(
@@ -24,19 +25,21 @@ class ShaderProgram(
     @abstractmethod
     def SetUniformFloat(self, name: str, value: float): ...
     @abstractmethod
-    def SetUniformVector(self, name: str, value: tuple[float, ...]): ...
+    def SetUniformVector(
+        self,
+        name: str,
+        value: t.Union[
+            tuple[float, float],
+            tuple[float, float, float],
+            tuple[float, float, float, float],
+        ],
+    ): ...
 
     @contextmanager
     @abstractmethod
     def Bind(self, *args: t.Any, **kwargs: t.Any):
         yield self
 
-    @staticmethod
-    def _ValidateSchemeCompatibility(
-        camera_scheme: 'tuple[SchemeItem, ...]',
-        shader_scheme: 'tuple[SchemeItem, ...]',
-    ) -> bool:
-        for shader_item, cam_item in zip(shader_scheme, camera_scheme):
-            if cam_item['name'] != shader_item['name'] or cam_item['type'] != shader_item['type']:
-                return False
-        return True
+    @property
+    @abstractmethod
+    def on_dispose(self) -> 'AsyncEvent[t.Self]': ...

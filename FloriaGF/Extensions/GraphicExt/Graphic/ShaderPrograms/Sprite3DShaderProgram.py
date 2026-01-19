@@ -1,7 +1,7 @@
 import typing as t
 
 from FloriaGF.Graphic.ShaderPrograms import CameraShaderProgram, CameraVertexShader
-from FloriaGF.Graphic.ShaderPrograms.Construct import C, ShaderConstuct
+from FloriaGF.Graphic.ShaderPrograms.Construct import ShaderConstuct, Components as C
 
 
 class Sprite3DVertexShader(CameraVertexShader):

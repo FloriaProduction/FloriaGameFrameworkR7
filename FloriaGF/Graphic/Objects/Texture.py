@@ -4,6 +4,7 @@ import numpy as np
 from contextlib import contextmanager
 
 from ... import Types, Abc, GL
+from ...AsyncEvent import AsyncEvent
 
 if t.TYPE_CHECKING:
     from PIL import Image
@@ -19,7 +20,14 @@ class Texture(
     Все методы требуют контекста OpenGL
     '''
 
-    __slots__ = ('_window', '_type', '_id', '_size', '_depth')
+    __slots__ = (
+        '_window',
+        '_type',
+        '_id',
+        '_size',
+        '_depth',
+        '_on_dispose',
+    )
 
     def __init__(
         self,
@@ -46,9 +54,12 @@ class Texture(
             mag_filter=mag_filter,
         )
 
+        self._on_dispose = AsyncEvent[t.Self]()
+
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         with self.window.Bind():
             GL.Texture.Delete(self.id)
+        self.on_dispose.Invoke(self)
 
     def TexParameter(
         self,
@@ -160,3 +171,7 @@ class Texture(
             'size': self.size,
             'depth': self.depth,
         }
+
+    @property
+    def on_dispose(self) -> AsyncEvent[t.Self]:
+        return self._on_dispose

@@ -1,43 +1,28 @@
+import typing as t
 from OpenGL import GL
+
 from . import hints, Convert
+from .Window.Common import GLFWWindow
 
 
-_depth: bool = False
-_blend: bool = False
+capabilities: dict[int, dict[str, bool]] = t.DefaultDict(lambda: {})
 
 
-def Enable(cap: hints.capability):
-    if cap == 'depth':
-        global _depth
+def Enable(window: GLFWWindow, cap: hints.capability):
+    window_id = id(window)
 
-        if _depth:
-            return
-        _depth = True
-
-    elif cap == 'blend':
-        global _blend
-
-        if _blend:
-            return
-        _blend = True
+    if capabilities[window_id].get(cap, False) is True:
+        return
+    capabilities[window_id][cap] = True
 
     GL.glEnable(Convert.ToOpenGLCapability(cap))
 
 
-def Disable(cap: hints.capability):
-    if cap == 'depth':
-        global _depth
+def Disable(window: GLFWWindow, cap: hints.capability):
+    window_id = id(window)
 
-        if not _depth:
-            return
-        _depth = False
+    if capabilities[window_id].get(cap, False) is False:
+        return
+    capabilities[window_id][cap] = False
 
-    elif cap == 'blend':
-        global _blend
-
-        if not _blend:
-            return
-        _blend = False
-
-    else:
-        GL.glDisable(Convert.ToOpenGLCapability(cap))
+    GL.glDisable(Convert.ToOpenGLCapability(cap))

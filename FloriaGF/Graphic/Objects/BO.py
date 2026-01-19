@@ -3,6 +3,7 @@ import typing as t
 from contextlib import contextmanager
 
 from ... import Abc, GL
+from ...AsyncEvent import AsyncEvent
 
 if t.TYPE_CHECKING:
     import numpy as np
@@ -19,7 +20,13 @@ class BO(
     Все методы требуют контекста OpenGL
     '''
 
-    __slots__ = ('_window', '_type', '_id', '_usage')
+    __slots__ = (
+        '_window',
+        '_type',
+        '_id',
+        '_usage',
+        '_on_dispose',
+    )
 
     def __init__(self, window: Abc.Window, type: 'GL.hints.buffer_type' = 'array_buffer', *args: t.Any, **kwargs: t.Any):
         self._window = window
@@ -28,9 +35,12 @@ class BO(
         self._id: int = GL.Buffer.Create()
         self._usage: t.Optional['GL.hints.buffet_data_usage'] = None
 
+        self._on_dispose = AsyncEvent[t.Self]()
+
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         with self.window.Bind():
             GL.Buffer.Delete(self.id)
+        self.on_dispose.Invoke(self)
 
     def SetData(self, data: 'np.ndarray', usage: 'GL.hints.buffet_data_usage' = 'static_draw'):
         GL.Buffer.Data(self.type, data, usage)
@@ -68,3 +78,7 @@ class BO(
     @property
     def usage_gl(self):
         return GL.Convert.ToOpenGLBufferDataUsage(self.usage)
+
+    @property
+    def on_dispose(self):
+        return self._on_dispose

@@ -4,15 +4,7 @@ if t.TYPE_CHECKING:
     from .... import GL
 
 
-scheme_item_attrib = t.Union[
-    t.Literal[
-        'vertice',
-        'texcoord',
-    ],
-    str,
-]
-
-TName = t.TypeVar('TName', bound=str, default=scheme_item_attrib, covariant=True)
+TName = t.TypeVar('TName', bound=str, default=str, covariant=True)
 
 
 class SchemeItem(t.TypedDict, t.Generic[TName]):

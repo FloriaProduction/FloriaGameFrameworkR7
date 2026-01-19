@@ -4,7 +4,7 @@ import glfw
 from uuid import UUID, uuid4
 from contextlib import contextmanager
 
-from ... import Abc, Utils, Managers, Convert, GL, Types
+from ... import Abc, Managers, GL, Types
 from ...Config import Config
 from ...AsyncEvent import AsyncEvent
 from ..Camera import Camera
@@ -55,8 +55,10 @@ class Window(Abc.Graphic.Windows.Window):
         self._on_close = AsyncEvent[Abc.Window]()
         self._on_closed = AsyncEvent[Abc.Window]()
         self._on_resize = AsyncEvent[Abc.Window, Types.Vec2[int]]()
+        self._on_camera_change = AsyncEvent[Abc.Window, Abc.Camera, Abc.Camera]()
+        self._on_dispose = AsyncEvent[Abc.Window]()
 
-        self._input_manager: Managers.InputManager = Managers.InputManager(self)
+        self._input_manager: Managers.Input.InputManager = Managers.Input.InputManager(self)
         self._shader_manager: Managers.ShaderManager = Managers.ShaderManager(self)
         self._material_manager: Managers.MaterialManager = Managers.MaterialManager(self)
 
@@ -70,7 +72,7 @@ class Window(Abc.Graphic.Windows.Window):
             )
 
             self.SetVSync(self.vsync)
-            GL.Enable('multisample')
+            GL.Enable(self.glfw_window, 'multisample')
 
         glfw.set_window_size_callback(self.glfw_window, self._SizeCallback)
 
@@ -90,6 +92,12 @@ class Window(Abc.Graphic.Windows.Window):
 
         GL.Window.Delete(self.glfw_window)
         self._window = None
+
+        self.on_dispose.Invoke(self)
+
+    @property
+    def on_dispose(self) -> AsyncEvent[Abc.Window]:
+        return self._on_dispose
 
     def _SizeCallback(self, window: GL.Window.GLFWWindow, width: int, height: int):
         self.on_resize.Invoke(self, Types.Vec2(width, height))
@@ -116,7 +124,7 @@ class Window(Abc.Graphic.Windows.Window):
 
     @stopwatch
     def Simulation(self):
-        self.input_manager.Simulate()
+        # self.input_manager.Simulate()
 
         self.camera.Render()
         self.camera.Draw()
@@ -131,9 +139,8 @@ class Window(Abc.Graphic.Windows.Window):
         self._closed = True
 
     def Close(self):
-        if self._closed or self._should_close:
-            return self
-        self._should_close = True
+        if not (self._closed or self._should_close):
+            self._should_close = True
         return self
 
     def GetID(self):
@@ -189,6 +196,7 @@ class Window(Abc.Graphic.Windows.Window):
 
     def SetCamera(self, value: Abc.Camera):
         self._camera, camera_prev = value, self._camera
+        self.on_camera_change.Invoke(self, self._camera, camera_prev)
         camera_prev.Dispose()
 
     def GetSize(self) -> Types.Vec2[int]:
@@ -273,3 +281,7 @@ class Window(Abc.Graphic.Windows.Window):
     @property
     def on_resize(self):
         return self._on_resize
+
+    @property
+    def on_camera_change(self):
+        return self._on_camera_change

@@ -2,6 +2,7 @@ import typing as t
 
 from .. import Abc, Protocols
 from ..Sequences import Sequence
+from ..AsyncEvent import AsyncEvent
 
 
 class Manager[
@@ -11,6 +12,7 @@ class Manager[
 ):
     __slots__ = (
         '_storage',
+        '_on_dispose',
         *Abc.Managers.Manager.__slots__,
     )
 
@@ -19,8 +21,15 @@ class Manager[
 
         self._storage: dict[t.Any, TItem] = {}
 
+        self._on_dispose = AsyncEvent[Abc.Managers.Manager[TItem]]()
+
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         self.RemoveAll()
+        self.on_dispose.Invoke(self)
+
+    @property
+    def on_dispose(self) -> AsyncEvent[Abc.Managers.Manager[TItem]]:
+        return self._on_dispose
 
     def Register(self, item: TItem) -> TItem:
         key = self._GetKey(item)
@@ -36,6 +45,7 @@ class Manager[
     def Remove(self, item: TItem, /) -> TItem: ...
     @t.overload
     def Remove[TDefault: t.Optional[t.Any]](self, item: TItem, default: TDefault, /) -> TItem | TDefault: ...
+
     def Remove(self, *args: TItem | t.Any):
         item = t.cast(TItem, args[0])
         key = self._GetKey(item)
@@ -47,9 +57,9 @@ class Manager[
 
         return self._storage.pop(key)
 
-    def RemoveAll(self):
+    def RemoveAll(self, dispose: bool = True):
         for item in (*self._storage.values(),):
-            if (del_item := self.Remove(item, None)) is not None and isinstance(del_item, Abc.Mixins.Disposable):
+            if (del_item := self.Remove(item, None)) is not None and isinstance(del_item, Abc.Mixins.Disposable) and dispose:
                 del_item.Dispose()
 
     def Has(self, item: TItem) -> bool:

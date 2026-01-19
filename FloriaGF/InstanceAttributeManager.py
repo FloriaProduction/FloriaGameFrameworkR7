@@ -143,7 +143,7 @@ class InstanceAttributeManager[
         )
 
     @property
-    def request_intance_update(self) -> bool:
+    def request_instance_data_update(self) -> bool:
         """Проверяет, требуется ли обновление данных инстанса.
 
         Returns:

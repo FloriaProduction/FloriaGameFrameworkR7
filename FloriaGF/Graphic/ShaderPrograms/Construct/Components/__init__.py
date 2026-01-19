@@ -6,3 +6,4 @@ from .Main import Main
 from .Param import Param, ParamIn, ParamOut
 from .Paste import Paste
 from .Uniform import Uniform, UniformBlock
+from .Struct import Struct

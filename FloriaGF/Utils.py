@@ -255,16 +255,8 @@ def ExceptionHandler(handler: t.Optional[t.Callable[[Exception], t.Any]] = None)
 
 
 def ApplyToPairs[T: t.Any, U: t.Any](
-    func: t.Callable[[T, T], U] | t.Callable[[int, T, T], U],
+    func: t.Callable[[int, T, T], U],
     i1: t.Iterable[T],
     i2: t.Iterable[T],
 ) -> t.Iterable[U]:
-    match len(inspect.signature(func).parameters):
-        case 2:
-            return (t.cast(t.Callable[[T, T], U], func)(a, b) for a, b in zip(i1, i2, strict=True))
-
-        case 3:
-            return (t.cast(t.Callable[[int, T, T], U], func)(i, a, b) for i, (a, b) in enumerate(zip(i1, i2, strict=True)))
-
-        case _:
-            raise TypeError("Функция должна принимать 2 или 3 аргумента")
+    return (func(i, a, b) for i, (a, b) in enumerate(zip(i1, i2, strict=True)))

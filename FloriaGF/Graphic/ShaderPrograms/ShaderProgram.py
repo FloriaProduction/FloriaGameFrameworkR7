@@ -1,23 +1,20 @@
 import typing as t
 
 from OpenGL import GL as _GL
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import contextmanager
 import functools
+import numpy as np
 
 from ... import Abc, Utils, Convert, Validator, GL
-from ...Core import Core
-from .Construct import ShaderConstuct, C
-
-if t.TYPE_CHECKING:
-    from ... import Assets, Types
-    from ...Graphic.Objects.Texture import Texture
+from ..Objects.BO import BO
+from .Construct import ShaderConstuct, Components as C
+from ...AsyncEvent import AsyncEvent
+from ...Stopwatch import stopwatch
 
 
-class BaseVertexShader(ShaderConstuct):
-    pass
-
-
-class ShaderProgram(Abc.Graphic.ShaderPrograms.ShaderProgram):
+class ShaderProgram(
+    Abc.Graphic.ShaderPrograms.ShaderProgram,
+):
     __vertex__: t.Optional[str | t.Type[ShaderConstuct]] = None
 
     __fragment__: t.Optional[str | t.Type[ShaderConstuct]] = None
@@ -60,9 +57,15 @@ class ShaderProgram(Abc.Graphic.ShaderPrograms.ShaderProgram):
 
         self._uniform_ids_cache: dict[str, int] = {}
         self._uniform_block_ids_cache: dict[str, int] = {}
+        self._uniform_buffer_objects: dict[str, BO] = {}
+
+        self._on_dispose = AsyncEvent[Abc.ShaderProgram]()
 
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         GL.ShaderProgram.Delete(self.id)
+        for ubo in self._uniform_buffer_objects.values():
+            ubo.Dispose()
+        self._uniform_buffer_objects.clear()
 
     @classmethod
     @functools.lru_cache(1)
@@ -120,47 +123,88 @@ class ShaderProgram(Abc.Graphic.ShaderPrograms.ShaderProgram):
             self._uniform_block_ids_cache[name] = loc = GL.ShaderProgram.GetUniformBlockIndex(self.id, name)
         return loc
 
+    @stopwatch
+    def BindUniformBlock(
+        self,
+        block_name: str,
+        data: dict[str, t.Any],
+        struct_name: t.Optional[str] = None,
+    ):
+        if struct_name is None:
+            struct_name = block_name
+
+        np_data = np.array(
+            tuple(data[field['name']] for field in self.GetStruct(struct_name)),
+            dtype=self.GetStructDType(struct_name),
+        )
+
+        if (ubo := self._uniform_buffer_objects.get(block_name)) is None:
+            ubo = BO(self.window, 'uniform_buffer')
+            with ubo.Bind():
+                ubo.SetData(np_data, 'dynamic_draw')
+
+            self._uniform_buffer_objects[block_name] = ubo
+
+        else:
+            with ubo.Bind():
+                ubo.SetSubData(0, np_data)
+
+        _GL.glBindBufferBase(
+            _GL.GL_UNIFORM_BUFFER,
+            self.GetUniformBlockLocation(block_name),
+            ubo.id,
+        )
+
     def SetUniformFloat(self, name: str, value: float):
         _GL.glUniform1f(
             self.GetUniformLocation(name),
             value,
         )
 
-    def SetUniformVector(self, name: str, value: tuple[float, ...]):
+    def SetUniformVector(
+        self,
+        name: str,
+        value: t.Union[
+            tuple[float, float],
+            tuple[float, float, float],
+            tuple[float, float, float, float],
+        ],
+    ):
         loc = self.GetUniformLocation(name)
 
-        match len(value):
-            case 2:
-                _GL.glUniform2f(loc, *value)
+        if (count := len(value)) == 2:
+            _GL.glUniform2f(loc, *value)
 
-            case 3:
-                _GL.glUniform3f(loc, *value)
+        elif count == 3:
+            _GL.glUniform3f(loc, *value)
 
-            case 4:
-                _GL.glUniform4f(loc, *value)
+        elif count == 3:
+            _GL.glUniform4f(loc, *value)
 
-            case _:
-                raise
+        else:
+            raise
 
     @contextmanager
     def Bind(self, *args: t.Any, **kwargs: t.Any):
         with GL.ShaderProgram.Bind(self.id):
-            if (depth := self.depth) is not None:
-                GL.Enable('depth')
+            glfw_window = self.window.glfw_window
+
+            if (depth := self.__depth__) is not None:
+                GL.Enable(glfw_window, 'depth')
                 GL.DepthFunc(depth)
             else:
-                GL.Disable('depth')
+                GL.Disable(glfw_window, 'depth')
 
-            if self.blend_equation is not None or self.blend_factors is not None:
-                GL.Enable('blend')
+            if self.__blend_equation__ is not None or self.__blend_factors__ is not None:
+                GL.Enable(glfw_window, 'blend')
 
-                if self.blend_equation is not None:
-                    GL.BlendEquation(self.blend_equation)
+                if self.__blend_equation__ is not None:
+                    GL.BlendEquation(self.__blend_equation__)
 
-                if self.blend_factors is not None:
-                    GL.BlendFactors(self.blend_factors)
+                if self.__blend_factors__ is not None:
+                    GL.BlendFactors(self.__blend_factors__)
             else:
-                GL.Disable('blend')
+                GL.Disable(glfw_window, 'blend')
 
             yield self
 
@@ -178,14 +222,23 @@ class ShaderProgram(Abc.Graphic.ShaderPrograms.ShaderProgram):
     def scheme(self):
         return self._GetScheme()
 
-    @property
-    def depth(self) -> t.Optional['GL.hints.depth_func']:
-        return self.__class__.__depth__
+    @classmethod
+    def GetStruct(cls, name: str) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem, ...]:
+        raise ValueError()
+
+    @classmethod
+    @functools.lru_cache(10)
+    def GetStructDType(cls, name: str) -> np.dtype:
+        return np.dtype(
+            [
+                (
+                    item['name'],
+                    *GL.Convert.GLSLTypeToNumpy(item['type']),
+                )
+                for item in cls.GetStruct(name)
+            ]
+        )
 
     @property
-    def blend_equation(self) -> t.Optional['GL.hints.blend_equation']:
-        return self.__class__.__blend_equation__
-
-    @property
-    def blend_factors(self) -> t.Optional[tuple['GL.hints.blend_factor', 'GL.hints.blend_factor']]:
-        return self.__class__.__blend_factors__
+    def on_dispose(self) -> AsyncEvent[Abc.ShaderProgram]:
+        return self._on_dispose

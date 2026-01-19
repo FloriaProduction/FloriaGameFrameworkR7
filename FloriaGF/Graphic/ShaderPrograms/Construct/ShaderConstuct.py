@@ -25,7 +25,9 @@ class ShaderConstuctMeta(ABCMeta):
             break
 
         for varname, var in (item for item in namespace.items() if isinstance(item[1], C.Component)):
-            if isinstance(var, C.ComponentNamed) and var.__auto_name__ and var.name is None:
+            if (
+                isinstance(var, C.ComponentNamed) and var.__auto_name__ and var._name is None
+            ):  # pyright: ignore[reportPrivateUsage]
                 var.name = varname
 
             if isinstance(var, C.Attrib):
@@ -54,6 +56,7 @@ class ShaderConstuct(metaclass=ShaderConstuctMeta):
         version: t.Optional[C.ContexVersion] = None
 
         attribs: set[C.Attrib] = set()
+        structs: set[C.Struct] = set()
         uniforms: set[C.Uniform] = set()
         uniform_blocks: set[C.UniformBlock] = set()
         pastes: set[C.Paste] = set()
@@ -77,6 +80,9 @@ class ShaderConstuct(metaclass=ShaderConstuctMeta):
 
             elif isinstance(var, C.Attrib):
                 attribs.add(var)
+
+            elif isinstance(var, C.Struct):
+                structs.add(var)
 
             elif isinstance(var, C.Uniform):
                 uniforms.add(var)
@@ -108,6 +114,8 @@ class ShaderConstuct(metaclass=ShaderConstuctMeta):
 
             {'\n'.join(attrib.GetSource() for attrib in attribs)}
 
+            {'\n'.join(struct.GetSource() for struct in structs)}
+            
             {'\n'.join(uniform.GetSource() for uniform in uniforms)}
 
             {'\n'.join(block.GetSource() for block in uniform_blocks)}

@@ -1,7 +1,6 @@
 import typing as t
 from OpenGL import GL
 
-# from .. import Types, Convert
 from . import hints, Convert
 
 

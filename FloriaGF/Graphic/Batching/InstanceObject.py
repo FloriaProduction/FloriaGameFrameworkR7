@@ -5,6 +5,7 @@ import numpy as np
 
 from ... import Abc, Types, Validator
 from ...Stopwatch import stopwatch
+from ...AsyncEvent import AsyncEvent
 
 
 class InstanceObject[
@@ -28,6 +29,8 @@ class InstanceObject[
         '__update_instance_fields',
         '__instance_data_cache',
         '_model_mat',
+        #
+        '_on_dispose',
     )
 
     def __init__(
@@ -56,11 +59,18 @@ class InstanceObject[
         self._mesh = Validator.Instance(mesh, Abc.Graphic.Mesh)
         self._batch = Validator.Instance(batch, Abc.Graphic.Batching.Batch)
 
+        self._on_dispose = AsyncEvent[Abc.InstanceObject]()
+
         if batch_register:
             self.batch.Register(self)
 
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         self.batch.Remove(self, None)
+        self.on_dispose.Invoke(self)
+
+    @property
+    def on_dispose(self) -> AsyncEvent[Abc.InstanceObject]:
+        return self._on_dispose
 
     def GetIntanceAttributeItems(self) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem[InstanceObject.ATTRIBS], ...]:
         return tuple(self.material.program.scheme.get('instance', {}).values())
@@ -79,7 +89,7 @@ class InstanceObject[
         return super()._GetInstanceAttributeCache(name)
 
     def _UpdateInstanceAttributes(self, *names: InstanceObject.ATTRIBS, all: bool = False):
-        update = self.request_intance_update is False  # Если до вызова обновление не требовалось, то обновляем Batch
+        update = self.request_instance_data_update is False  # Если до вызова обновление не требовалось, то обновляем Batch
 
         super()._UpdateInstanceAttributes(*names, all=all)
 

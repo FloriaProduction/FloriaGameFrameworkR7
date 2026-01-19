@@ -10,7 +10,7 @@ if t.TYPE_CHECKING:
     from glfw import _GLFWwindow  # pyright: ignore[reportPrivateUsage]
 
     from ....Managers.ShaderManager import ShaderManager
-    from ....Managers.InputManager import InputManager
+    from ....Managers import Input
     from ....Managers.MaterialManager import MaterialManager
     from ..Camera import Camera
     from .... import GL, Types
@@ -57,7 +57,7 @@ class Window(
 
     @property
     @abstractmethod
-    def input_manager(self) -> 'InputManager': ...
+    def input_manager(self) -> 'Input.InputManager': ...
 
     # events
 
@@ -80,6 +80,11 @@ class Window(
     @property
     @abstractmethod
     def on_resize(self) -> AsyncEvent['Window', 'Types.Vec2[int]']: ...
+
+    @property
+    @abstractmethod
+    def on_camera_change(self) -> AsyncEvent['Window', 'Camera', 'Camera']:
+        '''Window, NewCamera, PrevCamera'''
 
     # window chips
 

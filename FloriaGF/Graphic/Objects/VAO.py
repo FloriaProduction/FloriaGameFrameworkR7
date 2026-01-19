@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import ctypes
 
 from ... import Abc, GL
+from ...AsyncEvent import AsyncEvent
 
 
 class VAO(
@@ -19,6 +20,7 @@ class VAO(
     __slots__ = (
         '_window',
         '_id',
+        '_on_dispose',
     )
 
     def __init__(
@@ -31,9 +33,12 @@ class VAO(
 
         self._id: int = GL.VAO.Create()
 
+        self._on_dispose = AsyncEvent[t.Self]()
+
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         with self.Bind():
             GL.VAO.Delete(self.id)
+        self.on_dispose.Invoke(self)
 
     def VertexAttribPointer(
         self,
@@ -105,3 +110,7 @@ class VAO(
                 vao.VertexAttribPointer(1, 'vec2', 4 * float_size, 2 * float_size)
 
         return vao
+
+    @property
+    def on_dispose(self) -> AsyncEvent[t.Self]:
+        return self._on_dispose

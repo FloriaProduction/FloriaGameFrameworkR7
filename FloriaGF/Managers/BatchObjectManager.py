@@ -3,6 +3,7 @@ import typing as t
 from .. import Abc, Utils
 from .Manager import Manager
 from ..Stopwatch import stopwatch
+from ..Sequences.BatchSequence import BatchSequence
 
 
 class BatchObjectManager(
@@ -15,9 +16,13 @@ class BatchObjectManager(
 
     @stopwatch
     def Draw(self, camera: Abc.Camera):
-        for batch in self.sequence.Sort(lambda batch: batch.index):
+        for batch in self.sequence.Sort(lambda batch: batch.index).ToTuple():
             batch.Render(camera)
             batch.Draw()
+
+    @property
+    def sequence(self) -> BatchSequence[Abc.Batch]:
+        return BatchSequence(self._storage.values())
 
     @property
     def window(self):

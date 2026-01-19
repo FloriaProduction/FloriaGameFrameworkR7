@@ -1,6 +1,6 @@
 import typing as t
 
-from FloriaGF.Graphic.ShaderPrograms.Construct import C, ShaderConstuct
+from FloriaGF.Graphic.ShaderPrograms.Construct import ShaderConstuct, Components as C
 from FloriaGF.Graphic.ShaderPrograms import ShaderProgram
 
 

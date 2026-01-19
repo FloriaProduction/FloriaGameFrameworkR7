@@ -9,6 +9,7 @@ from ..Objects.VAO import VAO
 from ...Sequences.InstanceObjectSequence import InstanceObjectSequence
 from ...Flag import Flag
 from ...Stopwatch import Stopwatch, stopwatch
+from ...AsyncEvent import AsyncEvent
 
 
 class BatchGroup:
@@ -249,6 +250,7 @@ class Batch(
         '_vao_quad',
         '_storage',
         '_groups',
+        '_on_dispose',
     )
 
     def __init__(
@@ -286,8 +288,11 @@ class Batch(
 
         self._fbo: t.Optional[FBO] = None
 
+        self._on_dispose = AsyncEvent[Abc.Batch]()
+
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         self.RemoveAll()
+        self.on_dispose.Invoke(self)
 
     @stopwatch
     def Render(self, camera: Abc.Camera):
@@ -425,3 +430,7 @@ class Batch(
     @property
     def count(self):
         return len(self._storage)
+
+    @property
+    def on_dispose(self):
+        return self._on_dispose

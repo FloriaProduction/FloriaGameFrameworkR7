@@ -4,6 +4,8 @@ from contextlib import contextmanager
 from time import perf_counter
 from collections import deque
 import functools
+import inspect
+
 
 if t.TYPE_CHECKING:
     from . import Protocols
@@ -154,24 +156,92 @@ class Stopwatch:
         return self.__repr__()
 
 
-# TODO: разные экземпляры классов имеют одинаковый stopwatch для их методов
+class _StopwatchDescriptor:
+    """Дескриптор для привязки stopwatch к экземплярам классов."""
+
+    def __init__(
+        self,
+        func: Protocols.Functions.SyncCallable[...],
+        stopwatch: t.Optional[Stopwatch] = None,
+    ):
+        self.func = func
+        self.stopwatch = stopwatch or Stopwatch()
+
+        functools.update_wrapper(self, func)
+
+    def __get__(self, obj: t.Any, objtype: t.Optional[t.Type[t.Any]] = None) -> t.Any:
+        if obj is None:
+            return self
+
+        @functools.wraps(self.func)
+        def Wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
+            with self.stopwatch:
+                return self.func(obj, *args, **kwargs)
+
+        Wrapper.__stopwatch__ = self.stopwatch  # type: ignore
+        return Wrapper
+
+    def __call__(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
+        with self.stopwatch:
+            return self.func(*args, **kwargs)
+
+
+@t.overload
+def stopwatch[TFunc: Protocols.Functions.SyncCallable[...]](func: TFunc, /) -> TFunc: ...
+
+
+@t.overload
+def stopwatch[TFunc: Protocols.Functions.SyncCallable[...]](
+    *, instance: t.Optional[Stopwatch] = None
+) -> t.Callable[[TFunc], TFunc]: ...
 
 
 def stopwatch[
     TFunc: Protocols.Functions.SyncCallable[...],
 ](
-    func: TFunc,
-    stopwatch: t.Optional[Stopwatch] = None,
-) -> TFunc:
-    """Декоратор для измерения времени выполнения функций и методов."""
+    func: t.Optional[TFunc] = None,
+    instance: t.Optional[Stopwatch] = None,
+):
+    """Декоратор для измерения времени выполнения функций и методов.
 
-    stopwatch = Stopwatch() if stopwatch is None else stopwatch
+    Args:
+        func (TFunc, optional): Функция для декорирования.
+        instance (Stopwatch, optional): Существующий экземпляр Stopwatch.
 
-    @functools.wraps(func)
-    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
-        with stopwatch:
-            return func(*args, **kwargs)
+    Returns:
+        Декорированную функцию или декоратор.
 
-    wrapper.__stopwatch__ = stopwatch  # pyright: ignore[reportAttributeAccessIssue]
+    Example::
 
-    return t.cast(TFunc, wrapper)
+        # Для функции
+        @stopwatch
+        def my_function():
+            ...
+
+        # С общим stopwatch
+        shared_sw = Stopwatch()
+
+        @stopwatch(instance=shared_sw)
+        def shared_function():
+            ...
+
+        # Для метода класса (каждый экземпляр имеет свой stopwatch)
+        class MyClass:
+            @stopwatch
+            def my_method(self):
+                ...
+    """
+
+    def Decorator(f: TFunc) -> TFunc:
+        if inspect.ismethod(f) or (hasattr(f, '__self__') and getattr(f, '__self__', None) is not None):
+            wrapper = _StopwatchDescriptor(f, instance)
+            return t.cast(TFunc, wrapper)
+        else:
+            descriptor = _StopwatchDescriptor(f, instance)
+            return t.cast(TFunc, descriptor)
+
+    if func is None:
+        return t.cast(t.Callable[[TFunc], TFunc], Decorator)
+
+    else:
+        return Decorator(func)

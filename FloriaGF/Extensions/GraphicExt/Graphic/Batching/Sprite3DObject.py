@@ -227,7 +227,7 @@ class Sprite3DObject[
                 if (anim := self.animation) is None
                 else tuple(
                     Utils.ApplyToPairs(
-                        lambda x, y: x / y if y != 0 else 0,
+                        lambda _, x, y: x / y if y != 0 else 0,
                         Utils.ApplyToPairs(
                             lambda i, x, y: x + y if i == 0 else x - y,
                             (0, 32),

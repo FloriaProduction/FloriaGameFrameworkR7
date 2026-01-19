@@ -44,3 +44,6 @@ asset_manager_logger = CreateLogger(
 input_manager_logger = CreateLogger(
     'InputManager',
 )
+module_manager_logger = CreateLogger(
+    'ModuleManager',
+)

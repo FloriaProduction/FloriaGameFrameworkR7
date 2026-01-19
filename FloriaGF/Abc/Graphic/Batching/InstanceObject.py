@@ -11,6 +11,7 @@ if t.TYPE_CHECKING:
     from .Batch import Batch
     from .... import Types
     from ..Materials.Material import Material
+    from ....AsyncEvent import AsyncEvent
 
 
 class InstanceObject(
@@ -96,3 +97,7 @@ class InstanceObject(
             **super()._GetStrKwargs(),
             'id': self.id,
         }
+
+    @property
+    @abstractmethod
+    def on_dispose(self) -> 'AsyncEvent[t.Self]': ...

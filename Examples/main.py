@@ -1,27 +1,38 @@
 import typing as t
 import asyncio
 import OpenGL
+
+OpenGL.ERROR_CHECKING = False
 import os
 
 os.chdir(os.path.dirname(f'{os.path.abspath(__file__)}'))
-OpenGL.ERROR_CHECKING = False
 
 from FloriaGF import (
     Core,
+    Config,
 )
+from FloriaGF.Managers import ModuleManager
 
 import Game
 
 
 @Core.on_initialized.Register
 async def _(_):
-    await Game.Window.Load()
+    await ModuleManager.Load(
+        Game.Window,
+    )
 
 
 @Core.on_terminate.Register
 async def _(_):
-    await Game.Window.Unload()
+    await ModuleManager.Unload(
+        Game.Window,
+    )
 
 
 if __name__ == '__main__':
+    Config.FPS = 300
+    Config.SPS = 20
+    Config.VSYNC = 'full'
+
     asyncio.run(Core.Run())

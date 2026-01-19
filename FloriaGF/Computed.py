@@ -1,5 +1,7 @@
 import typing as t
 
+from .AsyncEvent import AsyncEvent
+
 
 class _BaseComputed[
     T: t.Any,
@@ -38,6 +40,18 @@ class _BaseComputed[
         self._clear_func: t.Optional[TFunClear] = clear_func
 
         self._cached: bool = cached
+
+        self.on_get = AsyncEvent[t.Self]()
+        '''Вызывается в момент вызова функции get_func'''
+        self.on_set = AsyncEvent[t.Self]()
+        '''Вызывается в момент вызова функции set_func'''
+        self.on_clear = AsyncEvent[t.Self]()
+        '''Вызывается в момент вызова функции clear_func'''
+
+        self.on_value_set = AsyncEvent[t.Self]()
+        '''Вызывается в момент присвоения значения при помощи get_func или set_func'''
+        self.on_value_cleared = AsyncEvent[t.Self]()
+        '''Вызывается в момент очистки значения при помощи clear_func или set_func'''
 
     @property
     def get_func(self) -> TFunGet:
@@ -106,15 +120,23 @@ class _BaseComputed[
         """
         self._clear_func = clear_func
 
-    def Clear(self):
+    def Clear(self, call_clear_func: bool = True):
         """
         Очищает кэшированное значение.
 
         При следующем обращении к значению функция-геттер будет вызвана снова, даже если кэширование включено.
+
+        Args:
+            call_clear_func (bool, optional): Вызывает clear_func если True. По умолчанию True.
         """
-        if (clear_func := self._clear_func) is not None:
+        if self._value is None:
+            return
+        if call_clear_func and (clear_func := self._clear_func) is not None:
             clear_func(self._value)
+            self.on_clear.Invoke(self)
+
         self._value = None
+        self.on_value_cleared.Invoke(self)
 
 
 class Computed[T: t.Any](
@@ -155,6 +177,11 @@ class Computed[T: t.Any](
         """
         if not self._cached or self._value is None:
             self._value = self.get_func()
+            self.on_get.Invoke(self)
+
+        if self._value is not None:
+            self.on_value_set.Invoke(self)
+
         return self._value
 
     @value.setter
@@ -168,7 +195,14 @@ class Computed[T: t.Any](
         Note:
             Вызывает функцию-сеттер с переданным значением
         """
-        self.set_func(value)
+
+        self._value = self.set_func(value)
+        self.on_set.Invoke(self)
+
+        if self._value is None:
+            self.on_value_cleared.Invoke(self)
+        else:
+            self.on_value_set.Invoke(self)
 
     def __call__(self, *args: t.Any, **kwds: t.Any) -> T:
         """
@@ -226,6 +260,11 @@ class ComputedAsync[T: t.Any](
         """
         if not self._cached or self._value is None:
             self._value = await self.get_func()
+            self.on_get.Invoke(self)
+
+        if self._value is not None:
+            self.on_value_set.Invoke(self)
+
         return self._value
 
     async def SetValue(self, value: T):
@@ -235,7 +274,13 @@ class ComputedAsync[T: t.Any](
         Args:
             value: Новое значение для установки
         """
-        await self.set_func(value)
+        self._value = await self.set_func(value)
+        self.on_set.Invoke(self)
+
+        if self._value is None:
+            self.on_value_cleared.Invoke(self)
+        else:
+            self.on_value_set.Invoke(self)
 
     async def __call__(self, *args: t.Any, **kwds: t.Any) -> T:
         """

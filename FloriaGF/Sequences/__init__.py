@@ -7,3 +7,4 @@ from .MaterialManager import MaterialSequence
 from .WindowSequence import WindowSequence
 from .ShaderSequence import ShaderSequence
 from .InstanceObjectSequence import InstanceObjectSequence
+from .BatchSequence import BatchSequence

@@ -12,6 +12,7 @@ from ..Managers.BatchObjectManager import BatchObjectManager
 from .ShaderPrograms.ComposeShaderProgram import ComposeShaderProgram
 from ..Stopwatch import stopwatch
 from ..InterpolationField import InterpolationField
+from ..AsyncEvent import AsyncEvent
 
 
 class Projection(t.TypedDict):
@@ -104,6 +105,8 @@ class Camera(
 
         self._instance_dtype_cache: t.Optional[np.dtype] = None
 
+        self._on_dispose = AsyncEvent[Abc.Camera]()
+
         if projection_orthographic is None and projection_perspective is None:
             self.SetProjectionOrthographic()
 
@@ -129,10 +132,15 @@ class Camera(
             raise RuntimeError('Как?')
 
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
-        self._batch_manager.Dispose()
-        self._ubo.Dispose()
-        if self._fbo is not None:
-            self._fbo.Dispose()
+        self.batch_manager.Dispose()
+        self.ubo.Dispose()
+        if (fbo := self._fbo) is not None:
+            fbo.Dispose()
+        self.on_dispose.Invoke(self)
+
+    @property
+    def on_dispose(self) -> AsyncEvent[Abc.Camera]:
+        return self._on_dispose
 
     @stopwatch
     def Update(self, *args: t.Any, **kwargs: t.Any):
@@ -196,7 +204,7 @@ class Camera(
 
     @stopwatch
     def Render(self, *args: t.Any, **kwargs: t.Any):
-        if self.request_intance_update:
+        if self.request_instance_data_update:
             self.Update()
 
         if self._fbo is None or self._fbo.size != self.resolution:

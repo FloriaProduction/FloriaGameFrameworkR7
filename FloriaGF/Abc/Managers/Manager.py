@@ -6,6 +6,7 @@ from .. import Mixins
 
 if t.TYPE_CHECKING:
     from ...Sequences.Sequence import Sequence
+    from ...AsyncEvent import AsyncEvent
 
 
 class Manager[TItem: Protocols.ID | t.Any](
@@ -29,7 +30,7 @@ class Manager[TItem: Protocols.ID | t.Any](
     def Remove(self, *args: t.Any) -> t.Any: ...
 
     @abstractmethod
-    def RemoveAll(self): ...
+    def RemoveAll(self, dispose: bool = True): ...
 
     @abstractmethod
     def Has(self, item: TItem) -> bool: ...
@@ -51,3 +52,7 @@ class Manager[TItem: Protocols.ID | t.Any](
 
     def __contains__(self, item: TItem):
         return self.Has(item)
+
+    @property
+    @abstractmethod
+    def on_dispose(self) -> 'AsyncEvent[t.Self]': ...

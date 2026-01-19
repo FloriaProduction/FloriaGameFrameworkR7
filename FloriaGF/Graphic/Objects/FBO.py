@@ -1,9 +1,10 @@
 import typing as t
 
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import contextmanager
 
 from ... import Abc, GL, Types
 from .Texture import Texture
+from ...AsyncEvent import AsyncEvent
 
 
 class FBO(
@@ -21,6 +22,7 @@ class FBO(
         '_id',
         '_texture',
         '_depth_texture',
+        '_on_dispose',
     )
 
     def __init__(
@@ -55,6 +57,8 @@ class FBO(
 
             GL.Framebuffer.CheckStatus()
 
+        self._on_dispose = AsyncEvent[t.Self]()
+
     def Dispose(self, *args: t.Any, **kwargs: t.Any):
         with self.window.Bind():
             GL.Framebuffer.Delete(self.id)
@@ -62,6 +66,12 @@ class FBO(
             self._texture.Dispose()
             if self._depth_texture is not None:
                 self._depth_texture.Dispose()
+
+        self.on_dispose.Invoke(self)
+
+    @property
+    def on_dispose(self) -> AsyncEvent[t.Self]:
+        return self._on_dispose
 
     @contextmanager
     def Bind(self):

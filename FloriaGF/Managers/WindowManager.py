@@ -1,12 +1,9 @@
 import typing as t
 from time import perf_counter
-import asyncio
 
-from .. import Abc, Utils
+from .. import Abc
 from .Manager import Manager
-from ..Timer import VariableTimer
 from ..Core import Core
-from ..Config import Config
 from ..Loggers import window_manager_logger
 from ..Sequences import WindowSequence
 from ..AsyncEvent import AsyncEvent
@@ -57,23 +54,22 @@ class WindowManager(
 
         self._simulate_time = perf_counter()
 
-        for window in self.sequence:
+        for window in (*self.sequence,):
             window.Simulate()
 
         self.on_simulated.Invoke(self)
 
     @stopwatch
-    def Register[TItem: Abc.Graphic.Windows.Window](self, item: TItem) -> TItem:
+    def Register[TItem: Abc.Window](self, item: TItem) -> TItem:
         window_manager_logger.info(f'Register {item}')
         result = t.cast(TItem, super().Register(item))
 
-        @result.on_closed.Register
-        async def _(window: Abc.Graphic.Windows.Window):
-            await self._RemoveClosedWindows()
-            if self.count == 0:
-                Core.Stop()
-
         return result
+
+    @t.overload
+    def Remove(self, item: Abc.Window, /) -> Abc.Window: ...
+    @t.overload
+    def Remove[TDefault: t.Any](self, item: Abc.Window, default: TDefault, /) -> Abc.Window | TDefault: ...
 
     @stopwatch
     def Remove(self, *args: Abc.Window | t.Any):
@@ -91,9 +87,12 @@ class WindowManager(
 
             self.on_closed.Invoke(self)
 
-    async def _RemoveClosedWindows(self):
+    def RemoveClosedWindows(self, stop_core: bool = False):
         for window in (*self.sequence.Filter(lambda window: window.should_close),):
             self.Remove(window).Dispose()
+
+        if stop_core and self.count == 0:
+            Core.Stop()
 
     @property
     def sequence(self) -> WindowSequence[Abc.Window]:

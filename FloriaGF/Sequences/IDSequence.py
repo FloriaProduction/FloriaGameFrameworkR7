@@ -88,7 +88,7 @@ class IDSequence(
 if t.TYPE_CHECKING:
 
     class Example(IDSequence[TItem], t.Generic[TItem]):
-    
+
         # id
 
         def WithID(self, id: TID):

@@ -13,6 +13,7 @@ if t.TYPE_CHECKING:
     from ....Graphic.Objects.FBO import FBO
     from ..Materials.Material import Material
     from ..Camera import Camera
+    from ....AsyncEvent import AsyncEvent
 
 
 class Batch(
@@ -61,3 +62,7 @@ class Batch(
     @property
     @abstractmethod
     def fbo(self) -> 'FBO': ...
+
+    @property
+    @abstractmethod
+    def on_dispose(self) -> 'AsyncEvent[Batch]': ...  # pyright: ignore[reportIncompatibleMethodOverride]

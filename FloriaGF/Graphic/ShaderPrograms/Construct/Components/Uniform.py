@@ -1,6 +1,7 @@
 import typing as t
 
 from .Base import ComponentNamed
+from .Struct import Struct
 from ..... import GL, Abc
 
 
@@ -23,21 +24,32 @@ class Uniform(ComponentNamed):
 class UniformBlock(ComponentNamed):
     def __init__(
         self,
-        block_name: str,
-        fields: t.Sequence[Abc.Graphic.ShaderPrograms.SchemeItem],
+        fields_or_struct: t.Sequence[Abc.Graphic.ShaderPrograms.SchemeItem] | Struct,
+        block_name: t.Optional[str] = None,
         layout: t.Optional[str] = "std140",
         binding: t.Optional[int] = None,
         name: t.Optional[str] = None,
     ):
         super().__init__(name)
 
+        self.fields_or_struct = fields_or_struct
         self.block_name = block_name
-        self.fields = tuple(fields)
         self.layout = layout
         self.binding = binding
 
+    def GetBlockName(self) -> str:
+        name: t.Optional[str] = self.block_name
+
+        if isinstance(fos := self.fields_or_struct, Struct):
+            name = fos.name
+
+        if name is None:
+            raise
+
+        return name
+
     def GetScheme(self) -> tuple[Abc.Graphic.ShaderPrograms.SchemeItem, ...]:
-        return self.fields
+        return fos.fields if isinstance(fos := self.fields_or_struct, Struct) else tuple(fos)
 
     def GetSource(self) -> str:
         return f'''
@@ -52,8 +64,8 @@ class UniformBlock(ComponentNamed):
                 ) if item is not None)    
             })'
         }
-        uniform {self.block_name} 
+        uniform {self.GetBlockName()} 
         {{{
-            '\n'.join(f'{field["type"]} {field['name']};' for field in self.fields)
+            '\n'.join(f'{field["type"]} {field['name']};' for field in self.GetScheme())
         }}} {'' if self.name is None else self.name};
         '''
