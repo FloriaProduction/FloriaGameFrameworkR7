@@ -113,6 +113,8 @@ class Sprite3DObject[
         self._pause_time: t.Optional[float] = None
         self._last_frame: int = 0
 
+        self._end_animation_callback: t.Optional[t.Callable[[], t.Any]] = None
+
         self._on_change_frame = AsyncEvent[t.Self, 'Animation', int]()
         self._on_end_animation = AsyncEvent[t.Self, 'Animation']()
         self._on_change_animation = AsyncEvent[t.Self, t.Optional['Animation']]()
@@ -143,6 +145,8 @@ class Sprite3DObject[
                 return
 
             if i > 0 and (i + 1) % anim.count == 0:
+                if (callback := self._end_animation_callback) is not None:
+                    callback()
                 self.on_end_animation.Invoke(self, anim)
 
             if self.animation != anim:
@@ -161,6 +165,7 @@ class Sprite3DObject[
         scale: bool = True,
         frame: int = 0,
         pause: bool = False,
+        end_callback: t.Optional[t.Callable[[], t.Any]] = None,
     ):
         self.SetMaterial(self.material.Modify(animation=animation))
         now = Core.window_manager.simulate_time
@@ -170,7 +175,7 @@ class Sprite3DObject[
             self._pause_time = now if pause else None
 
             if scale:
-                self.SetScale(Convert.FromPIX(animation.size).ToVec3(0))
+                self.SetScale(Convert.FromPIX(animation.frame_size).ToVec3(0))
 
             if animation.count > 1 and not pause:
                 self._interp_animation.RegisterEvent()
@@ -178,6 +183,7 @@ class Sprite3DObject[
             self._start_time = now
             self._pause_time = None
         self._last_frame = frame
+        self._end_animation_callback = end_callback
 
         self._UpdateInstanceAttributes('frame', 'origin')
         self.on_change_animation.Invoke(self, animation)
@@ -222,20 +228,15 @@ class Sprite3DObject[
             return self.frame
 
         elif name == 'origin':
+            if (anim := self.animation) is None:
+                return (0, 1)
+
+            frame_size = anim.frame_size
+            origin = anim.GetPoint('origin', self.frame)
+
             return (
-                (0, 1)
-                if (anim := self.animation) is None
-                else tuple(
-                    Utils.ApplyToPairs(
-                        lambda _, x, y: x / y if y != 0 else 0,
-                        Utils.ApplyToPairs(
-                            lambda i, x, y: x + y if i == 0 else x - y,
-                            (0, 32),
-                            anim.GetPoint('origin', self.frame),
-                        ),
-                        anim.size,
-                    )
-                )
+                (origin.x / frame_size.width) if frame_size.width > 0 else 0,
+                1 - ((origin.y / frame_size.height) if frame_size.height > 0 else 0),
             )
 
         return super()._GetInstanceAttribute(name)
@@ -273,20 +274,6 @@ class Sprite3DObject[
         if (anim := self.animation) is None:
             return 0
         return frame % anim.count if (frame := self._last_frame) > 0 and anim.loop else min(frame, anim.count - 1)
-
-        # return self._last_frame
-        # frame: int = 0
-        # if (anim := self.animation) is not None and anim.count > 1:
-        #     count = round(
-        #         max(
-        #             ((self._pause_time if self._pause_time is not None else Core.window_manager.simulate_time) - self._start_time)
-        #             / (anim.duration / anim.count),
-        #             0,
-        #         )
-        #     )
-        #     frame = count % anim.count if count > 0 and anim.loop else min(count, anim.count - 1)
-
-        # return frame
 
     def GetVisible(self) -> bool:
         return self._visible

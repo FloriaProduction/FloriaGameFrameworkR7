@@ -72,3 +72,5 @@ path = t.Union[
     str,
     'pathlib.Path',
 ]
+
+orientation = t.Literal['vertical', 'horizontal']

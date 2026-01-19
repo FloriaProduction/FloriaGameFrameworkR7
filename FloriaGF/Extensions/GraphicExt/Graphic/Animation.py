@@ -24,6 +24,7 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         '_count',
         '_duration',
         '_loop',
+        '_orientation',
         '_points',
     )
 
@@ -31,21 +32,25 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         self,
         name: str,
         image: 'Assets.Image | Image',
-        count: int = 1,
-        duration: float = 0,
-        loop: bool = False,
-        points: t.Mapping[int, t.Mapping['Animation.POINT_NAME', Types.hints.offset_2d]] = {},
+        count: t.Optional[int] = None,
+        duration: t.Optional[float] = None,
+        loop: t.Optional[bool] = None,
+        orientation: t.Optional[Types.hints.orientation] = None,
+        points: t.Optional[t.Mapping[int, t.Mapping['Animation.POINT_NAME', Types.hints.offset_2d]]] = None,
     ):
         super().__init__()
 
         self._name: str = name
         self._image: 'Image' = image if isinstance(image, Image) else Validator.NotNone(image.image)
-        self._count: int = count
-        self._duration: float = duration
-        self._loop: bool = loop
-        self._points: t.Mapping[int, t.Mapping[Animation.POINT_NAME, Types.Vec2[int]]] = {
-            frame: {name: Types.Vec2[int].New(offset) for name, offset in data.items()} for frame, data in points.items()
-        }
+        self._count: int = 1 if count is None else count
+        self._duration: float = 0 if duration is None else duration
+        self._loop: bool = False if loop is None else loop
+        self._orientation: Types.hints.orientation = 'horizontal' if orientation is None else orientation
+        self._points: t.Mapping[int, t.Mapping[Animation.POINT_NAME, Types.Vec2[int]]] = (
+            {}
+            if points is None
+            else {frame: {name: Types.Vec2[int].New(offset) for name, offset in data.items()} for frame, data in points.items()}
+        )
 
     def GetTexture(self, window: Abc.Window) -> Texture:
         if (texture_arrays := self._texture_arrays.get(window.id)) is None:
@@ -62,8 +67,21 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         return texture
 
     def GetFrames(self) -> t.Sequence['Image']:
-        frame_size = (self.image.width, self.image.height / self.count)
-        return tuple(self.image.crop((0, frame_size[1] * i, frame_size[0], frame_size[1] * (i + 1))) for i in range(self.count))
+        frame_size = self.frame_size
+
+        return tuple(
+            self.image.crop(
+                (0, frame_size[1] * i, frame_size[0], frame_size[1] * (i + 1))
+                if self.orientation == 'vertical'
+                else (
+                    frame_size[0] * i,
+                    0,
+                    frame_size[0] * (i + 1),
+                    frame_size[1],
+                )
+            )
+            for i in range(self.count)
+        )
 
     class Modify_Kwargs(t.TypedDict, total=False):
         name: str
@@ -71,6 +89,7 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         count: int
         duration: float
         loop: bool
+        orientation: Types.hints.orientation
         points: t.Mapping[int, t.Mapping['Animation.POINT_NAME', Types.hints.offset_2d]]
 
     def Modify(self, **kwargs: t.Unpack[Modify_Kwargs]) -> 'Animation':
@@ -80,6 +99,7 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
             kwargs.get('count', self.count),
             kwargs.get('duration', self.duration),
             kwargs.get('loop', self.loop),
+            kwargs.get('orientation', self.orientation),
             kwargs.get('points', self.points),
         )
 
@@ -126,10 +146,22 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         return self._loop
 
     @property
+    def orientation(self):
+        return self._orientation
+
+    @property
     def size(self) -> Types.Vec2[int]:
         return Types.Vec2[int](
             self.image.width,
             self.image.height // self.count,
+        )
+
+    @property
+    def frame_size(self) -> Types.Vec2[int]:
+        return Types.Vec2[int].New(
+            (self.image.width, self.image.height // self.count)
+            if self.orientation == 'vertical'
+            else (self.image.width // self.count, self.image.height)
         )
 
     @property
