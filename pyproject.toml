@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "FloriaGameFrameworkR7"
-version = "0.0.5"
+version = "0.0.6"
 description = "Экспериментальный самописный игровой фреймворк."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -86,3 +86,6 @@ namespaces = false
     "*.jpeg",
     "*.gif",
 ]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["__pycache__/*", "*.pyc", "*.pyo", "*.pyd"]
