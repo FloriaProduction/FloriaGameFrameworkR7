@@ -1,7 +1,10 @@
 import typing as t
 
 
-action_type = t.Literal['press',]
+action_type = t.Literal[
+    'press',
+    'state',
+]
 
 press_stage = t.Literal[
     'press',

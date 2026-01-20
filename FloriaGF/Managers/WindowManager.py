@@ -67,7 +67,7 @@ class WindowManager(
         @result.on_closed
         def _(_):
             Core.window_manager.RemoveClosedWindows(True)
-            
+
         return result
 
     @t.overload

@@ -61,6 +61,7 @@ class AnimationManager(
         image: Assets.Image | Image | str
         count: t.NotRequired[int]
         duration: t.NotRequired[float]
+        frame_duration: t.NotRequired[float]
         loop: t.NotRequired[bool]
         orientation: t.NotRequired[Types.hints.orientation]
         points: t.NotRequired[t.Mapping[int, t.Mapping['Animation.POINT_NAME', Types.hints.offset_2d]]]
@@ -69,7 +70,26 @@ class AnimationManager(
         '''
         Загружает и регистрирует множество анимаций
         '''
-        await Utils.WaitCors(self.Load(**info) for info in items)
+        await Utils.WaitCors(
+            self.Load(
+                info['name'],
+                info['image'],
+                (count := info.get('count')),
+                (
+                    (
+                        (frame_duration * count)
+                        if (frame_duration := info.get('frame_duration')) is not None and count is not None
+                        else None
+                    )
+                    if (duration := info.get('duration')) is None
+                    else duration
+                ),
+                info.get('loop'),
+                info.get('orientation'),
+                info.get('points'),
+            )
+            for info in items
+        )
 
     class AnimationSheetInfo(t.TypedDict):
         name: str
@@ -79,6 +99,7 @@ class AnimationManager(
 
         count: t.NotRequired[int]
         duration: t.NotRequired[float]
+        frame_duration: t.NotRequired[float]
         loop: t.NotRequired[bool]
         orientation: t.NotRequired[Types.hints.orientation]
         points: t.NotRequired[t.Mapping[int, t.Mapping['Animation.POINT_NAME', Types.hints.offset_2d]]]
@@ -106,7 +127,7 @@ class AnimationManager(
                     )
                 ),
                 count,
-                info.get('duration'),
+                info.get('frame_duration', 0) * count if (duration := info.get('duration')) is None else duration,
                 info.get('loop'),
                 orientation,
                 info.get('points'),

@@ -13,6 +13,7 @@ from . import hints, Convert, Actions
 if t.TYPE_CHECKING:
     from ... import GL
 
+
 TAction = t.TypeVar(
     'TAction',
     bound=Actions.Action,
@@ -74,17 +75,32 @@ class InputManager(
             if isinstance(handler, Actions.KeyboardHandler):
                 handler.Simulate(action_, key_, stage_, mods_)
 
+    def _MapValidate(self, map: dict[str, t.Any]) -> bool:
+        for name, action in map.items():
+            if not isinstance(t.cast(dict[str, t.Any], action), dict):
+                raise Exception(f'Action with name "{name}" must be a dictionary, got {type(action)}')
+
+            if (action_type := action.get('type')) is None:
+                raise Exception(f'Cannot determine action type for name "{name}"')
+
+            if (validator := Actions.action_validators.get(action_type)) is None:
+                raise Exception(f'No validator found for action type: "{action_type}" (name: "{name}")')
+
+            if validator(action) is False:
+                raise Exception(f'Action validation failed for type "{action_type}" (name: "{name}"). Action: {action}')
+
+        return True
+
     def SetMap(self, name: str, map: dict[str, TAction], /, clear: bool = False, enable: bool = True):
+        self._MapValidate(map)
+
         if clear:
             self.RemoveMaps(name)
-            
+
         self._action_maps[name].update(map)
-        
+
         if not enable:
             self._disabled_action_maps.add(name)
-
-    def _MapValidate(self, map: dict[str, t.Any]) -> bool:
-        return True
 
     async def LoadMaps(self, *pathes: str | Path, enable: bool = True):
         for path in pathes:
@@ -92,9 +108,6 @@ class InputManager(
             maps = t.cast(dict[str, dict[str, t.Any]], Validator.Instance(asset.data, dict))
 
             for name, map in maps.items():
-                if not self._MapValidate(map):
-                    raise
-
                 self.SetMap(name, map, enable=enable)
 
     def SetMaps(self, maps: dict[str, dict[str, TAction]], /, clear: bool = True):

@@ -1,11 +1,9 @@
 import typing as t
-import asyncio
 import OpenGL
-
-OpenGL.ERROR_CHECKING = False
 import os
 
 os.chdir(os.path.dirname(f'{os.path.abspath(__file__)}'))
+OpenGL.ERROR_CHECKING = False
 
 from FloriaGF import (
     Core,
@@ -30,6 +28,8 @@ async def _(_):
 
 
 if __name__ == '__main__':
+    import asyncio
+
     Config.FPS = 300
     Config.SPS = 20
     Config.VSYNC = 'full'

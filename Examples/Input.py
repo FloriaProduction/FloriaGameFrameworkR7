@@ -10,6 +10,10 @@ on_clear = AsyncEvent[Managers.Input.InputManager]()
 from . import Window
 
 
+def Get() -> Managers.Input.InputManager:
+    return Window.Get().input_manager
+
+
 def Setup(input_manager: Managers.Input.InputManager):
     on_setup.Invoke(input_manager)
 

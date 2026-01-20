@@ -182,7 +182,7 @@ class Sprite3DObject[
         else:
             self._start_time = now
             self._pause_time = None
-        
+
         self._last_frame = frame
         self._end_animation_callback = end_callback
 

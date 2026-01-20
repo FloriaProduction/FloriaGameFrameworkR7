@@ -17,7 +17,7 @@ async def _(im: InputManager):
         },
     })
 
-    @Actions.PressHandler(im, 'core', 'exit').event
+    @Actions.KeyPressHandler(im, 'core', 'exit').event
     def _(*args: t.Any):
         from FloriaGF import Core
 
