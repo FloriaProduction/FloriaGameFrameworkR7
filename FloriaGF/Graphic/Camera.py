@@ -60,7 +60,6 @@ class Camera(
         scale: float = 1,
         program_compose: t.Optional[Abc.ComposeShaderProgram] = None,
         vao_quad: t.Optional[VAO] = None,
-        **kwargs: t.Any,
     ):
         super().__init__()
 

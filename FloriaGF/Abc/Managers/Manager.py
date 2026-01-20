@@ -46,6 +46,10 @@ class Manager[TItem: Protocols.ID | t.Any](
     def RegisterMany(self, *items: TItem):
         for item in items:
             self.Register(item)
+    
+    def RemoveMany(self, *items: TItem):
+        for item in items:
+            self.Remove(item)
 
     def __len__(self) -> int:
         return self.count

@@ -385,9 +385,9 @@ class Batch(
 
         return obj
 
-    def RemoveAll(self):
+    def RemoveAll(self, dispose: bool = True):
         for item in (*self.sequence,):
-            if (item := self.Remove(item, None)) is not None and isinstance(item, Abc.Mixins.Disposable):
+            if (item := self.Remove(item, None)) is not None and isinstance(item, Abc.Mixins.Disposable) and dispose:
                 item.Dispose()
 
     def Has(self, item: Abc.InstanceObject) -> bool:

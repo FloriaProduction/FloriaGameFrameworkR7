@@ -53,7 +53,7 @@ class InputManager(
     def on_dispose(self) -> AsyncEvent['InputManager']:
         return self._on_dispose
 
-    def _Process(self):
+    def _HandlersProcessing(self):
         for map_name, map in self._action_maps.items():
             if map_name not in self._handler_maps:
                 continue
@@ -70,12 +70,16 @@ class InputManager(
         stage_ = Convert.IntToPressStage(action)
         mods_ = Convert.IntToPressMods(mods)
 
-        for handler, action_ in self._Process():
+        for handler, action_ in self._HandlersProcessing():
             if isinstance(handler, Actions.KeyboardHandler):
                 handler.Simulate(action_, key_, stage_, mods_)
 
-    def SetMap(self, name: str, map: dict[str, TAction], /, enable: bool = True):
-        self._action_maps[name] = map
+    def SetMap(self, name: str, map: dict[str, TAction], /, clear: bool = False, enable: bool = True):
+        if clear:
+            self.RemoveMaps(name)
+            
+        self._action_maps[name].update(map)
+        
         if not enable:
             self._disabled_action_maps.add(name)
 

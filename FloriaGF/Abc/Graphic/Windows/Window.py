@@ -84,7 +84,7 @@ class Window(
     @property
     @abstractmethod
     def on_camera_change(self) -> AsyncEvent['Window', 'Camera', 'Camera']:
-        '''Window, NewCamera, PrevCamera'''
+        '''window, new_camera, prev_camera'''
 
     # window chips
 

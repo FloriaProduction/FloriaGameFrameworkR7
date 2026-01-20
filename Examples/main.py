@@ -16,14 +16,13 @@ from FloriaGF.Managers import ModuleManager
 import Game
 
 
-@Core.on_initialized.Register
+@Core.on_initialized
 async def _(_):
     await ModuleManager.Load(
         Game.Window,
     )
 
-
-@Core.on_terminate.Register
+@Core.on_terminate
 async def _(_):
     await ModuleManager.Unload(
         Game.Window,

@@ -25,6 +25,9 @@ class PressHandler(
         *args: t.Any,
         **kwargs: t.Any,
     ) -> t.Any:
+        if action['type'] != 'press':
+            return
+         
         action_keys = set((keys_,)) if isinstance(keys_ := action['key'], str) else set(keys_)
         action_mods = (
             set((mods_,))

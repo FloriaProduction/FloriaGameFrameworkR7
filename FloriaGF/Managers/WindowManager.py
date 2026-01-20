@@ -64,6 +64,10 @@ class WindowManager(
         window_manager_logger.info(f'Register {item}')
         result = t.cast(TItem, super().Register(item))
 
+        @result.on_closed
+        def _(_):
+            Core.window_manager.RemoveClosedWindows(True)
+            
         return result
 
     @t.overload

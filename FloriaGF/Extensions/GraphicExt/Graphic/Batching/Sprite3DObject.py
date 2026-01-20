@@ -182,6 +182,7 @@ class Sprite3DObject[
         else:
             self._start_time = now
             self._pause_time = None
+        
         self._last_frame = frame
         self._end_animation_callback = end_callback
 
@@ -228,15 +229,16 @@ class Sprite3DObject[
             return self.frame
 
         elif name == 'origin':
-            if (anim := self.animation) is None:
+            anim = self.animation
+            if anim is None:
                 return (0, 1)
 
             frame_size = anim.frame_size
-            origin = anim.GetPoint('origin', self.frame)
+            origin = anim.GetPoint('origin', self.frame, (0, 0))
 
             return (
-                (origin.x / frame_size.width) if frame_size.width > 0 else 0,
-                1 - ((origin.y / frame_size.height) if frame_size.height > 0 else 0),
+                origin[0] / frame_size.width,
+                1 - (origin[1] / frame_size.height),
             )
 
         return super()._GetInstanceAttribute(name)

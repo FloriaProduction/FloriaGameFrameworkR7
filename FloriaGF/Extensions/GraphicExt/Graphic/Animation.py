@@ -43,7 +43,11 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         self._name: str = name
         self._image: 'Image' = image if isinstance(image, Image) else Validator.NotNone(image.image)
         self._count: int = 1 if count is None else count
+        if not self._count.is_integer() or self._count < 1:
+            raise
         self._duration: float = 0 if duration is None else duration
+        if self._duration < 0:
+            raise
         self._loop: bool = False if loop is None else loop
         self._orientation: Types.hints.orientation = 'horizontal' if orientation is None else orientation
         self._points: t.Mapping[int, t.Mapping[Animation.POINT_NAME, Types.Vec2[int]]] = (
@@ -57,7 +61,7 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
             texture_arrays = TextureArrays()
             self._texture_arrays[window.id] = texture_arrays
 
-            @window.on_closed.Register
+            @window.on_closed
             def _(window: Abc.Window):
                 self._texture_arrays.pop(window.id, None)
 
@@ -113,17 +117,34 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
             )
         )
 
+    @t.overload
+    def GetPoint(
+        self,
+        name: 'Animation.POINT_NAME',
+        frame: int = 0,
+        /,
+    ) -> Types.Vec2[int]: ...
+
+    @t.overload
+    def GetPoint[TDefault: t.Optional[t.Any]](
+        self,
+        name: 'Animation.POINT_NAME',
+        frame: int = 0,
+        default: TDefault = None,
+        /,
+    ) -> Types.Vec2[int] | TDefault: ...
+
     @functools.lru_cache
-    def GetPoint(self, name: 'Animation.POINT_NAME', frame: int = 0) -> Types.Vec2[int]:
-        offset: t.Optional[Types.Vec2[int]] = None
+    def GetPoint(self, *args: 'Animation.POINT_NAME | int | t.Any'):
+        name = t.cast('Animation.POINT_NAME', args[0])
+        frame = t.cast(int, args[1]) if len(args) >= 2 else 0
+        if frame < 0 or frame >= self.count:
+            raise
 
         for _, data in (*filter(lambda item: item[0] <= frame, self._points.items()),)[::-1]:
             if (offset := data.get(name)) is not None:
-                break
-
-        if offset is None:
-            return Types.Vec2[int].New(0)
-        return offset
+                return offset
+        return args[2] if len(args) >= 3 else Types.Vec2[int](0, 0)
 
     @property
     def name(self):
@@ -135,10 +156,12 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
 
     @property
     def count(self):
+        '''[1, ...)'''
         return self._count
 
     @property
     def duration(self):
+        '''[0, ...)'''
         return self._duration
 
     @property
@@ -158,6 +181,14 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
 
     @property
     def frame_size(self) -> Types.Vec2[int]:
+        '''
+        Example::
+
+            Vec2[int](
+                [1, ...),
+                [1, ...),
+            )
+        '''
         return Types.Vec2[int].New(
             (self.image.width, self.image.height // self.count)
             if self.orientation == 'vertical'
@@ -166,6 +197,7 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
 
     @property
     def frame_duration(self) -> float:
+        '''[0, ...)'''
         return self.duration / self.count
 
     @property

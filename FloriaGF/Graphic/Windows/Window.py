@@ -66,9 +66,6 @@ class Window(Abc.Graphic.Windows.Window):
             self._camera: Abc.Camera = Camera(
                 self,
                 resolution=self.size,
-                projection={
-                    'type': 'orthographic',
-                },
             )
 
             self.SetVSync(self.vsync)
