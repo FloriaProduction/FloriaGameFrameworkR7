@@ -7,7 +7,7 @@ from . import Abc, Utils, Validator
 from .Config import Config
 from .Loggers import core_logger
 from .TimeoutScheduler import TimeoutScheduler
-from .Timer import TimerStorage, VariableTimer, FixedTimer
+from .Timer import VariableTimer, FixedTimer
 from .AsyncEvent import AsyncEvent
 from .Stopwatch import Stopwatch
 
@@ -26,7 +26,6 @@ class CoreCls(Abc.Core):
         self._mesh_manager: t.Optional['Managers.MeshManager'] = None
 
         self._scheduler: t.Optional[TimeoutScheduler] = None
-        self._timer_storage: t.Optional[TimerStorage] = None
 
         self._exception_callback: t.Optional[t.Callable[[Exception], t.Any]] = self._ExceptionCallback
 
@@ -66,7 +65,6 @@ class CoreCls(Abc.Core):
         self._mesh_manager = Utils.CoalesceLazy(self._mesh_manager, lambda: Managers.MeshManager())
 
         self._scheduler = Utils.CoalesceLazy(self._scheduler, lambda: TimeoutScheduler())
-        self._timer_storage = Utils.CoalesceLazy(self._timer_storage, lambda: TimerStorage())
 
         self._fps_timer = VariableTimer(Config.FPS_delay)
         self._sps_timer = FixedTimer(Config.SPS_delay)
@@ -116,49 +114,17 @@ class CoreCls(Abc.Core):
         await self.Initialize()
 
         try:
-            match Config.GAME_CYCLE_MODE:
-                case 'concurent':
+            while self.enable:
+                with self._stopwatch_cycle:
+                    if self.fps_timer.Try():
+                        glfw.poll_events()
+                        await self.window_manager.Simulate()
+                        await self.on_draw.InvokeAsync(self)
 
-                    async def RunWindowManager():
-                        while self.enable:
-                            if self.fps_timer.Try():
-                                glfw.poll_events()
-                                await self.window_manager.Simulate()
-                                await self.on_draw.InvokeAsync(self)
-                            await asyncio.sleep(0)
+                    if self.sps_timer.Try():
+                        await self.on_simulate.InvokeAsync(self)
 
-                    async def RunSimulateManager():
-                        while self.enable:
-                            if self.sps_timer.Try():
-                                await self.on_simulate.InvokeAsync(self)
-                            await asyncio.sleep(0)
-
-                    async def RunTimers():
-                        while self.enable:
-                            # if self.tps_timer.Try():
-                            # await self.timer_storage.Invoke()
-                            await asyncio.sleep(0)
-
-                    await Utils.WaitCors((RunWindowManager(), RunSimulateManager(), RunTimers()))
-
-                case 'sync':
-                    while self.enable:
-                        with self._stopwatch_cycle:
-                            if self.fps_timer.Try():
-                                glfw.poll_events()
-                                await self.window_manager.Simulate()
-                                await self.on_draw.InvokeAsync(self)
-
-                            if self.sps_timer.Try():
-                                await self.on_simulate.InvokeAsync(self)
-
-                            # if self.tps_timer.Try():
-                            # await self.timer_storage.Invoke()
-
-                        await asyncio.sleep(0)
-
-                case _:
-                    raise
+                await asyncio.sleep(0)
 
         finally:
             await self.Terminate()
@@ -205,14 +171,6 @@ class CoreCls(Abc.Core):
     @scheduler.setter
     def scheduler(self, value: 'TimeoutScheduler'):
         self._scheduler = value
-
-    @property
-    def timer_storage(self) -> TimerStorage:
-        return Validator.NotNone(self._timer_storage)
-
-    @timer_storage.setter
-    def timer_storage(self, value: TimerStorage):
-        self._timer_storage = value
 
     def SetExceptionCallaback(self, callback: t.Callable[[Exception], t.Any]):
         self._exception_callback = callback

@@ -4,7 +4,7 @@ import typing as t
 if t.TYPE_CHECKING:
     from .. import Managers
     from ..TimeoutScheduler import TimeoutScheduler
-    from ..Timer import TimerStorage, FixedTimer, VariableTimer
+    from ..Timer import FixedTimer, VariableTimer
     from ..AsyncEvent import AsyncEvent
 
 
@@ -125,24 +125,6 @@ class Core(
     @scheduler.setter
     @abstractmethod
     def scheduler(self, value: 'TimeoutScheduler'): ...
-
-    @property
-    @abstractmethod
-    def timer_storage(self) -> 'TimerStorage':
-        """Timer registry and lifecycle manager.
-
-        Tracks active timers (fixed/variable) and handles their cleanup.
-
-        Raises:
-            RuntimeError: When accessed before initialization completes
-
-        Returns:
-            TimerStorage instance maintaining timer collections
-        """
-
-    @timer_storage.setter
-    @abstractmethod
-    def timer_storage(self, value: 'TimerStorage'): ...
 
     @abstractmethod
     def SetExceptionCallaback(self, callback: t.Callable[[Exception], t.Any]):

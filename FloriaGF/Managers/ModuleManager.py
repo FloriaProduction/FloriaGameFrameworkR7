@@ -7,7 +7,7 @@ from .. import Utils
 from ..Loggers import module_manager_logger
 
 
-async def Process(
+async def Processing(
     modules_or_coros: t.Iterable[ts.ModuleType | t.Awaitable[t.Any] | t.Callable[[], t.Any | t.Awaitable[t.Any]]],
     method_name: t.Literal['Load', 'Unload'] | str,
 ):
@@ -43,7 +43,7 @@ async def Load(
             Module2.AsyncFunc(),
         )
     """
-    await Process(modules_or_coros, method_name)
+    await Processing(modules_or_coros, method_name)
 
 
 async def Unload(
@@ -63,4 +63,4 @@ async def Unload(
             Module2.AsyncFunc(),
         )
     """
-    await Process(modules_or_coros, method_name)
+    await Processing(modules_or_coros, method_name)

@@ -2,6 +2,7 @@ import typing as t
 from uuid import uuid4, UUID
 import glm
 import numpy as np
+import itertools
 
 from ... import Abc, Types, Validator
 from ...Stopwatch import stopwatch
@@ -78,7 +79,10 @@ class InstanceObject[
     def _GetInstanceAttribute(self, name: InstanceObject.ATTRIBS) -> t.Any:
         if name == 'model_matrix':
             return self._GetModelMatrix(
-                self.position,
+                itertools.starmap(
+                    lambda x, y: x * y,
+                    zip(self.position, self.batch.parallax),
+                ),
                 self.rotation,
                 self.scale,
             )
@@ -135,9 +139,9 @@ class InstanceObject[
     @staticmethod
     @stopwatch
     def _GetModelMatrix(
-        position: Types.Vec3[float],
+        position: Types.Vec3[float] | t.Iterable[float],
         rotation: Types.Quaternion[float],
-        scale: Types.Vec3[float],
+        scale: Types.Vec3[float] | t.Iterable[float],
     ) -> tuple[
         tuple[float, float, float, float],
         tuple[float, float, float, float],

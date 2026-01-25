@@ -14,6 +14,7 @@ if t.TYPE_CHECKING:
     from ..Materials.Material import Material
     from ..Camera import Camera
     from ....AsyncEvent import AsyncEvent
+    from .... import Types
 
 
 class Batch(
@@ -62,6 +63,9 @@ class Batch(
     @property
     @abstractmethod
     def fbo(self) -> 'FBO': ...
+    
+    @property
+    def parallax(self) -> 'Types.hints.Vec3[float]': ...
 
     @property
     @abstractmethod

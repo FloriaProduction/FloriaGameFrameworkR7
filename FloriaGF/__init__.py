@@ -2,7 +2,7 @@ from . import Abc, Managers, Graphic, Assets, Types, Loggers, Convert, Validator
 
 from .Computed import Computed, ComputedAsync
 from .TimeoutScheduler import TimeoutScheduler
-from .Timer import VariableTimer, FixedTimer, TimerStorage
+from .Timer import VariableTimer, FixedTimer
 from .Avg import Avg
 from .PerSecond import PerSecond
 from .PeriodicTrigger import PeriodicTrigger

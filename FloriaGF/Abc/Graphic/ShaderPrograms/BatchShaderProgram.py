@@ -18,5 +18,4 @@ class BatchShaderProgram(
     @contextmanager
     @abstractmethod
     def Bind(self, camera: 'Camera', *args: t.Any, **kwargs: t.Any):
-        with super().Bind():
-            yield self
+        yield self

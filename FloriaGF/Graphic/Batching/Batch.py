@@ -2,7 +2,7 @@ import typing as t
 from uuid import UUID, uuid4
 import numpy as np
 
-from ... import Abc, Validator, GL
+from ... import Abc, Validator, GL, Types
 from ..Objects.FBO import FBO
 from ..Objects.BO import BO
 from ..Objects.VAO import VAO
@@ -242,6 +242,7 @@ class Batch(
         '_name',
         '_window',
         '_index',
+        '_parallax',
         '_program_compose',
         '_depth_func',
         '_blend_equation',
@@ -259,6 +260,7 @@ class Batch(
         index: int = 0,
         name: t.Optional[str] = None,
         *,
+        parallax: t.Optional[Types.hints.parallax] = None,
         program_compose: t.Optional[Abc.ComposeShaderProgram] = None,
         vao_quad: t.Optional[VAO] = None,
     ):
@@ -267,6 +269,7 @@ class Batch(
 
         self._window = Validator.Instance(window, Abc.Window)
         self._index: int = index
+        self._parallax = Types.Vec3[float].New(1 if parallax is None else parallax)
 
         self._program_compose: Abc.ComposeShaderProgram
         if program_compose is None:
@@ -434,3 +437,7 @@ class Batch(
     @property
     def on_dispose(self):
         return self._on_dispose
+
+    @property
+    def parallax(self):
+        return self._parallax

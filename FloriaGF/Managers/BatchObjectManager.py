@@ -1,6 +1,6 @@
 import typing as t
 
-from .. import Abc, Utils
+from .. import Abc, Utils, GL
 from .Manager import Manager
 from ..Stopwatch import stopwatch
 from ..Sequences.BatchSequence import BatchSequence
@@ -17,6 +17,7 @@ class BatchObjectManager(
     @stopwatch
     def Draw(self, camera: Abc.Camera):
         for batch in self.sequence.Sort(lambda batch: batch.index).ToTuple():
+            GL.Clear('depth')
             batch.Render(camera)
             batch.Draw()
 

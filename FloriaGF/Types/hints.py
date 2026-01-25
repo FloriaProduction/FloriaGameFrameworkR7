@@ -45,7 +45,12 @@ size_3d = t.Union[
     tuple[int, int, int],
     'Vec3[int]',
 ]
-
+parallax = t.Union[
+    float,
+    tuple[float, float, float],
+    'Vec3[float]',
+    t.Iterable[float],
+]
 
 rgb = t.Union[
     tuple[int, int, int],

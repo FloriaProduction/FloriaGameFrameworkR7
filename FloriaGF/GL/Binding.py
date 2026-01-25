@@ -33,9 +33,6 @@ def Bind[T: t.Any](
         if not OpenGL.ERROR_CHECKING and not skip and (code := GL.glGetError()) != GL.GL_NO_ERROR:
             raise RuntimeError(code)
 
-    except Exception as ex:
-        raise
-
     finally:
         if not skip:
             item = stack.pop()

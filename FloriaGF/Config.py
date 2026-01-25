@@ -27,14 +27,6 @@ class ConfigCls:
     LOG_FILE_FORMAT: str = '[%(levelname)s]  %(asctime)s.%(msecs)03d  %(name)s:\t%(message)s'
     LOG_FILE_MODE: t.Literal['r', 'a'] = 'a'
 
-    GAME_CYCLE_MODE: t.Literal['concurent', 'sync'] = 'sync'
-    '''Тип цикла ядра. По умолчанию sync
-    
-    Args:
-        sync: Запускает один цикл, который последовательно обновляет отрисовку, симуляцию и таймеры.
-        councurent: Запускает 3 асинхронных задачи, которые конкурентно обновляют отрисовку, симуляцию и таймеры.
-    '''
-
     @property
     def PIX_scale(self) -> float:
         '''Единица измерения для одного пикселя'''
