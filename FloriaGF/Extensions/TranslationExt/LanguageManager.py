@@ -18,6 +18,7 @@ class LanguageManager:
         instance = LanguageManager(
             pathes,
             default_language,
+            default,
         )
 
         if preload:
@@ -82,7 +83,7 @@ class LanguageManager:
         elif self._default is not None:
             return self._default
 
-        raise KeyError(f"Localization key not found: {' -> '.join(path)}, in languages: {', '.join(self._languages.keys())}")
+        raise KeyError(f"Localization path not found: {' -> '.join(path)}, in languages: {', '.join(self._languages.keys())}")
 
     def SetCurrentLanguage(self, name: str):
         if name not in self._languages:

@@ -77,7 +77,7 @@ class FBO(
     def Bind(self):
         with GL.Framebuffer.Bind(self.id, self.size):
             yield self
-    
+
     def GetID(self):
         return self._id
 

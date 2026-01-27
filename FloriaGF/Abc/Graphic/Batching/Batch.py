@@ -63,7 +63,7 @@ class Batch(
     @property
     @abstractmethod
     def fbo(self) -> 'FBO': ...
-    
+
     @property
     def parallax(self) -> 'Types.hints.Vec3[float]': ...
 

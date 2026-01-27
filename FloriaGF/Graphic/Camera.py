@@ -451,13 +451,13 @@ class Camera(
     def SetScale(self, value: float, min_value: t.Optional[float] = None, max_value: t.Optional[float] = None):
         if min_value is not None:
             value = max(min_value, value)
-            
+
         if max_value is not None:
             value = min(max_value, value)
-        
+
         if value <= 0:
             raise
-        
+
         self._scale = value
         self._UpdateInstanceAttributes('projection')
 

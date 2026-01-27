@@ -120,7 +120,11 @@ class Sprite3DObject[
         self._on_change_animation = AsyncEvent[t.Self, t.Optional['Animation']]()
         self._on_pause = AsyncEvent[t.Self, 'Animation', bool]()
 
-        self.SetAnimation(animation, scale=scale is None)
+        self.SetAnimation(
+            animation,
+            scale=scale is None,
+            frame=0 if animation is None else animation.start,
+        )
 
     def _UpdateAnimation(self, *args: t.Any, **kwargs: t.Any):
         if (anim := self.animation) is None or anim.count <= 1:

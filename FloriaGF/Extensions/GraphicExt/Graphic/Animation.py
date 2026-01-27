@@ -22,6 +22,7 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         '_name',
         '_image',
         '_count',
+        '_start',
         '_duration',
         '_loop',
         '_orientation',
@@ -33,6 +34,7 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         name: str,
         image: 'Assets.Image | Image',
         count: t.Optional[int] = None,
+        start: t.Optional[int] = None,
         duration: t.Optional[float] = None,
         loop: t.Optional[bool] = None,
         orientation: t.Optional[Types.hints.orientation] = None,
@@ -55,6 +57,7 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
             if points is None
             else {frame: {name: Types.Vec2[int].New(offset) for name, offset in data.items()} for frame, data in points.items()}
         )
+        self._start: int = 0 if start is None else start
 
     def GetTexture(self, window: Abc.Window) -> Texture:
         if (texture_arrays := self._texture_arrays.get(window.id)) is None:
@@ -95,12 +98,14 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         loop: bool
         orientation: Types.hints.orientation
         points: t.Mapping[int, t.Mapping['Animation.POINT_NAME', Types.hints.offset_2d]]
+        start: int
 
     def Modify(self, **kwargs: t.Unpack[Modify_Kwargs]) -> 'Animation':
         return Animation(
             kwargs.get('name', self.name),
             kwargs.get('image', self.image),
             kwargs.get('count', self.count),
+            kwargs.get('start', self.start),
             kwargs.get('duration', self.duration),
             kwargs.get('loop', self.loop),
             kwargs.get('orientation', self.orientation),
@@ -108,6 +113,7 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
         )
 
     def GetSignature(self) -> int:
+        # TODO: пересмотреть сигнатуры
         return hash(
             (
                 self.name,
@@ -158,6 +164,10 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
     def count(self):
         '''[1, ...)'''
         return self._count
+
+    @property
+    def start(self):
+        return self._start
 
     @property
     def duration(self):
@@ -218,8 +228,10 @@ class Animation(Abc.Mixins.Signaturable, Abc.Mixins.Repr):
                 self.name,
                 self.image.size,
                 self.count,
+                self.start,
                 self.duration,
                 self.loop,
+                self.orientation,
                 tuple(
                     tuple(
                         (
